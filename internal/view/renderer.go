@@ -33,7 +33,7 @@ func New(root string) (*Renderer, error) {
 		if folder == "layouts" || folder == "partials" {
 			continue
 		}
-		t, err := template.New("").Funcs(template.FuncMap{"dict": dict}).ParseGlob(filepath.Join(root, "layouts", "*.html"))
+		t, err := template.New("").Funcs(template.FuncMap{"dict": dict, "addOne": func(value int) int { return value + 1 }}).ParseGlob(filepath.Join(root, "layouts", "*.html"))
 		if err != nil {
 			return nil, fmt.Errorf("parse layouts: %w", err)
 		}

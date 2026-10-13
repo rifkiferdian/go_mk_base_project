@@ -139,7 +139,13 @@ document.addEventListener("keydown", (event) => {
 });
 
 document.querySelectorAll("[data-open-dialog]").forEach((button) => {
-  button.addEventListener("click", () => document.getElementById(button.dataset.openDialog)?.showModal());
+  button.addEventListener("click", () => {
+    const dialog = document.getElementById(button.dataset.openDialog);
+    if (!dialog) return;
+    dialog.showModal();
+    document.documentElement.classList.add("overflow-hidden");
+    document.body.classList.add("overflow-hidden");
+  });
 });
 document.querySelectorAll("[data-close-dialog]").forEach((button) => {
   button.addEventListener("click", () => button.closest("dialog")?.close());
@@ -147,6 +153,12 @@ document.querySelectorAll("[data-close-dialog]").forEach((button) => {
 document.querySelectorAll("dialog").forEach((dialog) => {
   dialog.addEventListener("click", (event) => {
     if (event.target === dialog) dialog.close();
+  });
+  dialog.addEventListener("close", () => {
+    if (!document.querySelector("dialog[open]")) {
+      document.documentElement.classList.remove("overflow-hidden");
+      document.body.classList.remove("overflow-hidden");
+    }
   });
 });
 
@@ -353,6 +365,58 @@ document.querySelectorAll("[data-edit-reporting]").forEach((button) => {
     dialog.showModal();
   });
 });
+
+const assessmentForm = document.getElementById("assessmentForm");
+if (assessmentForm) {
+  const trainee = document.getElementById("assessmentTrainee");
+  const assessmentDate = assessmentForm.elements.assessment_date;
+  if (assessmentDate && !assessmentDate.value) assessmentDate.value = new Date().toISOString().slice(0, 10);
+
+  const updateTraineeSummary = () => {
+    const option = trainee?.selectedOptions[0];
+    const values = { number: "number", position: "position", department: "department", store: "store" };
+    Object.entries(values).forEach(([target, data]) => {
+      const element = assessmentForm.querySelector(`[data-trainee-${target}]`);
+      if (element) element.textContent = option?.dataset[data] || "—";
+    });
+  };
+  trainee?.addEventListener("change", updateTraineeSummary);
+  updateTraineeSummary();
+
+  const updateAssessmentTotal = () => {
+    const groups = [...new Set([...assessmentForm.querySelectorAll('input[type="radio"][name^="score_"]')].map((input) => input.name))];
+    let total = 0;
+    let filled = 0;
+    groups.forEach((name) => {
+      const selected = assessmentForm.querySelector(`input[type="radio"][name="${name}"]:checked`);
+      if (!selected) return;
+      total += Number(selected.value);
+      filled += 1;
+      const criterionID = name.replace("score_", "");
+      const description = assessmentForm.querySelector(`[data-score-description="${criterionID}"]`);
+      if (description) description.textContent = selected.dataset.ruleDescription || "";
+    });
+    const average = filled ? total / filled : 0;
+    const rating = average <= 0 ? "Belum lengkap" : average <= 1.8 ? "Sangat Kurang Sekali" : average <= 2.6 ? "Kurang Sekali" : average <= 3.4 ? "Kurang" : average <= 4.2 ? "Mendekati Standar" : "Sesuai Standar";
+    const weight = assessmentForm.querySelector("[data-assessment-weight]");
+    const averageElement = assessmentForm.querySelector("[data-assessment-average]");
+    const ratingElement = assessmentForm.querySelector("[data-assessment-rating]");
+    if (weight) weight.textContent = `${filled}/${groups.length}`;
+    if (averageElement) averageElement.textContent = average.toFixed(2);
+    if (ratingElement) ratingElement.textContent = rating;
+  };
+  assessmentForm.querySelectorAll('input[type="radio"][name^="score_"]').forEach((input) => input.addEventListener("change", updateAssessmentTotal));
+  updateAssessmentTotal();
+
+  assessmentForm.querySelector("[data-submit-final]")?.addEventListener("click", (event) => {
+    const total = assessmentForm.querySelectorAll('input[type="radio"][name^="score_"]:checked').length;
+    const expected = new Set([...assessmentForm.querySelectorAll('input[type="radio"][name^="score_"]')].map((input) => input.name)).size;
+    if (total !== expected || !assessmentForm.elements.notes.value.trim()) {
+      event.preventDefault();
+      showDashboardToast("Lengkapi semua nilai dan catatan sebelum diajukan.");
+    }
+  });
+}
 
 document.querySelectorAll("[data-user-store-row]").forEach((row) => {
   const checkbox = row.querySelector("[data-user-store-checkbox]");

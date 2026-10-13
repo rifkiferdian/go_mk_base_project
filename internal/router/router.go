@@ -24,6 +24,7 @@ import (
 	"mksiaga/internal/profile"
 	"mksiaga/internal/sessionmanagement"
 	storeManagement "mksiaga/internal/store"
+	"mksiaga/internal/traineeassessment"
 	userManagement "mksiaga/internal/user"
 	"mksiaga/internal/view"
 )
@@ -86,6 +87,7 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 		assessmentRuleHandler := assessmentrule.NewHandler(cfg.AppName, assessmentrule.NewService(assessmentrule.NewRepository(db)), navigationService)
 		organizationHandler := organization.NewHandler(cfg.AppName, organization.NewService(organization.NewRepository(db)), navigationService)
 		employeeHandler := employee.NewHandler(cfg.AppName, employee.NewService(employee.NewRepository(db)), navigationService)
+		assessmentHandler := traineeassessment.NewHandler(cfg.AppName, traineeassessment.NewService(traineeassessment.NewRepository(db)), navigationService)
 		profileHandler := profile.NewHandler(cfg.AppName, profile.NewService(profile.NewRepository(db)), navigationService)
 		storeHandler := storeManagement.NewHandler(cfg.AppName, storeManagement.NewService(storeManagement.NewRepository(db)), navigationService)
 		sessionHandler := sessionmanagement.NewHandler(cfg.AppName, sessionmanagement.NewService(sessionmanagement.NewRepository(db)), navigationService)
@@ -93,6 +95,12 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 		authorized.GET("/profile", profileHandler.Index)
 		authorized.POST("/profile/name", profileHandler.UpdateName)
 		authorized.POST("/profile/password", profileHandler.UpdatePassword)
+		authorized.GET("/assessments", auth.RequirePermission(db, "trainee_assessments.view"), assessmentHandler.Index)
+		authorized.GET("/assessments/new", auth.RequirePermission(db, "trainee_assessments.create"), assessmentHandler.New)
+		authorized.POST("/assessments", auth.RequirePermission(db, "trainee_assessments.create"), assessmentHandler.Create)
+		authorized.GET("/assessments/:id/edit", auth.RequirePermission(db, "trainee_assessments.update"), assessmentHandler.Edit)
+		authorized.POST("/assessments/:id/update", auth.RequirePermission(db, "trainee_assessments.update"), assessmentHandler.Update)
+		authorized.POST("/assessments/:id/delete", auth.RequirePermission(db, "trainee_assessments.delete"), assessmentHandler.Delete)
 		authorized.GET("/profile/sessions", sessionHandler.Index)
 		authorized.POST("/profile/sessions/revoke-others", sessionHandler.RevokeOthers)
 		authorized.POST("/profile/sessions/:id/revoke", sessionHandler.Revoke)
