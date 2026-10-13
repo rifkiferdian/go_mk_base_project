@@ -11,6 +11,7 @@
       <button type="button" data-sidebar-toggle aria-expanded="{{if .Open}}true{{else}}false{{end}}" class="mb-1 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm transition {{if .Active}}bg-orange-50 font-bold text-orange-700{{else}}font-medium text-slate-600 hover:bg-slate-50 hover:text-orange-600{{end}}">
         {{if eq .Key "access"}}<i class="fa-solid fa-shield size-5 shrink-0" aria-hidden="true"></i>{{end}}
         {{if eq .Key "master"}}<i class="fa-solid fa-store size-5 shrink-0" aria-hidden="true"></i>{{end}}
+        {{if eq .Key "assessment-settings"}}<i class="fa-solid fa-clipboard-check size-5 shrink-0" aria-hidden="true"></i>{{end}}
         <span class="flex-1">{{.Label}}</span>
         <i data-sidebar-chevron class="fa-solid fa-chevron-down size-4 transition-transform {{if .Open}}rotate-180{{end}}" aria-hidden="true"></i>
       </button>
