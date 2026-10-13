@@ -36,6 +36,9 @@ type definition struct {
 var definitions = []definition{
 	{group: "Menu utama", key: "dashboard", label: "Dashboard", url: "/"},
 	{group: "Master Data", parent: "master", key: "stores", label: "Store", url: "/master/stores", permission: "stores.view"},
+	{group: "Master Data", parent: "master", key: "assessment-aspects", label: "Aspek Penilaian", url: "/master/assessment-aspects", permission: "assessment_aspects.view"},
+	{group: "Master Data", parent: "master", key: "assessment-criteria", label: "Subaspek Penilaian", url: "/master/assessment-criteria", permission: "assessment_criteria.view"},
+	{group: "Master Data", parent: "master", key: "assessment-score-rules", label: "Aturan Skor", url: "/master/assessment-score-rules", permission: "assessment_score_rules.view"},
 	{group: "Pengelolaan", parent: "access", key: "users", label: "User", url: "/settings/users", permission: "users.view"},
 	{group: "Pengelolaan", parent: "access", key: "roles", label: "Role", url: "/settings/roles", permission: "roles.view"},
 	{group: "Pengelolaan", parent: "access", key: "permissions", label: "Permission", url: "/settings/permissions", permission: "permissions.view"},

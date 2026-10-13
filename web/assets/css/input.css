@@ -17,6 +17,9 @@
 [data-edit-permission],
 [data-edit-user],
 [data-edit-store],
+[data-edit-aspect],
+[data-edit-criterion],
+[data-edit-rule],
 form[data-confirm] > button {
   position: relative;
   display: inline-grid;
@@ -35,6 +38,9 @@ form[data-confirm] > button {
 [data-edit-permission]::before,
 [data-edit-user]::before,
 [data-edit-store]::before,
+[data-edit-aspect]::before,
+[data-edit-criterion]::before,
+[data-edit-rule]::before,
 form[data-confirm] > button::before {
   position: absolute;
   top: 50%;
@@ -52,7 +58,10 @@ form[data-confirm] > button::before {
 [data-edit-role]::before,
 [data-edit-permission]::before,
 [data-edit-user]::before,
-[data-edit-store]::before {
+[data-edit-store]::before,
+[data-edit-aspect]::before,
+[data-edit-criterion]::before,
+[data-edit-rule]::before {
   content: "\f304";
 }
 
@@ -63,7 +72,10 @@ form[data-confirm] > button::before {
 [data-edit-role],
 [data-edit-permission],
 [data-edit-user],
-[data-edit-store] {
+[data-edit-store],
+[data-edit-aspect],
+[data-edit-criterion],
+[data-edit-rule] {
   background-color: var(--color-orange-50);
   color: var(--color-orange-600);
   box-shadow: inset 0 0 0 1px var(--color-orange-100);
@@ -78,7 +90,10 @@ form[data-confirm] > button {
 [data-edit-role]:hover,
 [data-edit-permission]:hover,
 [data-edit-user]:hover,
-[data-edit-store]:hover {
+[data-edit-store]:hover,
+[data-edit-aspect]:hover,
+[data-edit-criterion]:hover,
+[data-edit-rule]:hover {
   background-color: var(--color-orange-500);
   color: white;
   box-shadow: 0 4px 10px color-mix(in srgb, var(--color-orange-500) 25%, transparent);

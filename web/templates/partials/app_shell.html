@@ -21,6 +21,9 @@
           {{if eq .Key "roles"}}<i class="fa-solid fa-user-shield size-5 shrink-0" aria-hidden="true"></i>{{end}}
           {{if eq .Key "permissions"}}<i class="fa-solid fa-key size-5 shrink-0" aria-hidden="true"></i>{{end}}
           {{if eq .Key "stores"}}<i class="fa-solid fa-store size-5 shrink-0" aria-hidden="true"></i>{{end}}
+          {{if eq .Key "assessment-aspects"}}<i class="fa-solid fa-list-check size-5 shrink-0" aria-hidden="true"></i>{{end}}
+          {{if eq .Key "assessment-criteria"}}<i class="fa-solid fa-layer-group size-5 shrink-0" aria-hidden="true"></i>{{end}}
+          {{if eq .Key "assessment-score-rules"}}<i class="fa-solid fa-sliders size-5 shrink-0" aria-hidden="true"></i>{{end}}
           {{.Label}}
         </a>
         {{end}}

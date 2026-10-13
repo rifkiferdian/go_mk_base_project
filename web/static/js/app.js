@@ -211,6 +211,75 @@ document.querySelectorAll("[data-edit-store]").forEach((button) => {
   });
 });
 
+document.querySelectorAll("[data-edit-aspect]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const dialog = document.getElementById("editAspectDialog");
+    const form = document.getElementById("editAspectForm");
+    if (!dialog || !form) return;
+    form.action = `/master/assessment-aspects/${button.dataset.id}/update`;
+    form.elements.code.value = button.dataset.code ?? "";
+    form.elements.name.value = button.dataset.name ?? "";
+    form.elements.sort_order.value = button.dataset.sortOrder ?? "";
+    dialog.showModal();
+  });
+});
+
+document.querySelectorAll("[data-edit-criterion]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const dialog = document.getElementById("editCriterionDialog");
+    const form = document.getElementById("editCriterionForm");
+    if (!dialog || !form) return;
+    form.action = `/master/assessment-criteria/${button.dataset.id}/update`;
+    form.elements.aspect_id.value = button.dataset.aspectId ?? "";
+    form.elements.code.value = button.dataset.code ?? "";
+    form.elements.description.value = button.dataset.description ?? "";
+    form.elements.weight.value = button.dataset.weight ?? "1";
+    form.elements.sort_order.value = button.dataset.sortOrder ?? "";
+    dialog.showModal();
+  });
+});
+
+function filterRuleCriteria(form, aspectId, selectedCriterion = "") {
+  const criterion = form?.querySelector("[data-rule-criterion]");
+  if (!criterion) return;
+  const available = Boolean(aspectId);
+  criterion.disabled = !available;
+  const placeholder = criterion.options[0];
+  if (placeholder) placeholder.textContent = available ? "Pilih subaspek" : "Pilih aspek terlebih dahulu";
+  [...criterion.options].slice(1).forEach((option) => {
+    const visible = option.dataset.aspectId === String(aspectId);
+    option.hidden = !visible;
+    option.disabled = !visible;
+  });
+  criterion.value = selectedCriterion;
+  if (!criterion.value) criterion.value = "";
+}
+
+document.querySelectorAll("[data-rule-form]").forEach((form) => {
+  const aspect = form.querySelector("[data-rule-aspect]");
+  aspect?.addEventListener("change", () => filterRuleCriteria(form, aspect.value));
+  filterRuleCriteria(form, aspect?.value ?? "");
+});
+
+document.querySelectorAll("[data-edit-rule]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const dialog = document.getElementById("editRuleDialog");
+    const form = document.getElementById("editRuleForm");
+    if (!dialog || !form) return;
+    form.action = `/master/assessment-score-rules/${button.dataset.criterionId}/${button.dataset.score}/update`;
+    const criterionID = button.dataset.criterionId ?? "";
+    const criterionOption = [...form.elements.criterion_id.options].find((option) => option.value === criterionID);
+    const aspect = form.querySelector("[data-rule-aspect]");
+    if (aspect) aspect.value = criterionOption?.dataset.aspectId ?? "";
+    filterRuleCriteria(form, aspect?.value ?? "", criterionID);
+    form.elements.score.value = button.dataset.score ?? "";
+    form.elements.finding_min.value = button.dataset.findingMin ?? "";
+    form.elements.finding_max.value = button.dataset.findingMax ?? "";
+    form.elements.description.value = button.dataset.description ?? "";
+    dialog.showModal();
+  });
+});
+
 document.querySelectorAll("[data-user-store-row]").forEach((row) => {
   const checkbox = row.querySelector("[data-user-store-checkbox]");
   const role = row.querySelector("[data-user-store-role]");
@@ -254,7 +323,7 @@ document.querySelectorAll("form[data-confirm]").forEach((form) => {
   });
 });
 
-document.querySelectorAll("[data-edit-role], [data-edit-permission], [data-edit-user], [data-edit-store]").forEach((button) => {
+document.querySelectorAll("[data-edit-role], [data-edit-permission], [data-edit-user], [data-edit-store], [data-edit-aspect], [data-edit-criterion], [data-edit-rule]").forEach((button) => {
   button.title = "Edit";
 });
 

@@ -1,8 +1,8 @@
 {{define "content"}}
-<div class="relative min-h-screen overflow-hidden bg-slate-950 lg:grid lg:grid-cols-2">
+<div class="relative min-h-screen overflow-hidden bg-gradient-to-br from-orange-500 via-orange-600 to-amber-600 lg:grid lg:grid-cols-2 lg:bg-none lg:bg-slate-950">
   <div class="pointer-events-none absolute inset-0 overflow-hidden lg:hidden" aria-hidden="true">
-    <div class="absolute -right-24 -top-24 size-72 rounded-full bg-orange-500/20 blur-3xl"></div>
-    <div class="absolute -bottom-32 -left-20 size-80 rounded-full bg-amber-400/10 blur-3xl"></div>
+    <div class="absolute -right-24 -top-24 size-72 rounded-full bg-white/15 blur-3xl"></div>
+    <div class="absolute -bottom-32 -left-20 size-80 rounded-full bg-amber-200/20 blur-3xl"></div>
   </div>
 
   <section class="relative hidden overflow-hidden bg-gradient-to-br from-orange-500 via-orange-600 to-amber-600 p-12 text-white lg:flex lg:flex-col lg:justify-between xl:p-16">
@@ -10,9 +10,9 @@
     <div class="absolute -right-10 top-10 size-64 rounded-full border border-white/15"></div>
     <div class="absolute -bottom-32 -left-20 size-96 rounded-full bg-white/10 blur-2xl"></div>
 
-    <a href="/" class="relative flex w-fit items-center gap-3" aria-label="Kembali ke beranda MK Siaga">
+    <a href="/" class="relative flex w-fit items-center gap-3" aria-label="Kembali ke beranda {{.AppName}}">
       <span class="grid size-12 place-items-center rounded-2xl bg-white/15 ring-1 ring-white/25 backdrop-blur-sm">
-        <i class="fa-solid fa-shield-halved size-7" aria-hidden="true"></i>
+        <i class="fa-solid fa-award size-7" aria-hidden="true"></i>
       </span>
       <span class="text-xl font-bold tracking-tight">{{.AppName}}</span>
     </a>
@@ -20,36 +20,36 @@
     <div class="relative max-w-xl">
       <div class="mb-7 inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-sm font-medium ring-1 ring-white/20 backdrop-blur-sm">
         <span class="size-2 rounded-full bg-amber-200"></span>
-        Sistem operasional keamanan store
+        Sistem penilaian dan apresiasi trainee
       </div>
-      <h1 class="text-5xl font-bold leading-tight tracking-tight xl:text-6xl">Satu akses untuk menjaga setiap store.</h1>
-      <p class="mt-6 max-w-lg text-lg leading-8 text-orange-50/90">Pantau aktivitas, catatan keamanan, dan tanggung jawab tim dari store yang telah diberikan kepada Anda.</p>
+      <h1 class="text-5xl font-bold leading-tight tracking-tight xl:text-6xl">Setiap perkembangan layak diapresiasi.</h1>
+      <p class="mt-6 max-w-lg text-lg leading-8 text-orange-50/90">Pantau perkembangan, kelola penilaian, dan berikan apresiasi terbaik untuk setiap trainee.</p>
     </div>
 
     <div class="relative flex items-center gap-4 text-sm text-orange-100">
       <div class="flex -space-x-2" aria-hidden="true">
-        <span class="grid size-9 place-items-center rounded-full bg-slate-900 text-xs font-bold ring-2 ring-orange-500">SC</span>
-        <span class="grid size-9 place-items-center rounded-full bg-white text-xs font-bold text-orange-600 ring-2 ring-orange-500">AD</span>
+        <span class="grid size-9 place-items-center rounded-full bg-slate-900 text-xs font-bold ring-2 ring-orange-500">HR</span>
+        <span class="grid size-9 place-items-center rounded-full bg-white text-xs font-bold text-orange-600 ring-2 ring-orange-500">TR</span>
         <span class="grid size-9 place-items-center rounded-full bg-amber-200 text-xs font-bold text-amber-900 ring-2 ring-orange-500">SP</span>
       </div>
-      <p>Security, admin, dan supervisor dalam satu sistem.</p>
+      <p>HR, trainee, dan supervisor dalam satu sistem.</p>
     </div>
   </section>
 
-  <section class="relative flex min-h-screen items-center justify-center px-5 py-10 sm:px-8 lg:bg-white lg:px-12 xl:px-20">
+  <section class="relative flex min-h-screen items-center justify-center px-5 py-8 sm:px-8 sm:py-10 lg:bg-white lg:px-12 xl:px-20">
     <div class="w-full max-w-md">
-      <a href="/" class="mb-10 flex items-center gap-3 text-white lg:hidden" aria-label="Kembali ke beranda MK Siaga">
-        <span class="grid size-11 place-items-center rounded-2xl bg-orange-500 shadow-lg shadow-orange-950/30">
-          <i class="fa-solid fa-shield-halved size-6" aria-hidden="true"></i>
+      <a href="/" class="mb-10 flex min-w-0 items-center gap-3 text-white lg:hidden" aria-label="Kembali ke beranda {{.AppName}}">
+        <span class="grid size-11 shrink-0 place-items-center rounded-2xl bg-orange-500 shadow-lg shadow-orange-950/30">
+          <i class="fa-solid fa-award size-6" aria-hidden="true"></i>
         </span>
-        <span class="text-xl font-bold tracking-tight">{{.AppName}}</span>
+        <span class="min-w-0 text-lg font-bold leading-tight tracking-tight sm:text-xl">{{.AppName}}</span>
       </a>
 
-      <div class="rounded-3xl bg-white p-6 shadow-2xl shadow-black/20 sm:p-9 lg:p-0 lg:shadow-none">
-        <div class="mb-8">
+      <div class="rounded-3xl bg-white p-5 shadow-2xl shadow-black/20 sm:p-9 lg:p-0 lg:shadow-none">
+        <div class="mb-6 sm:mb-8">
           <p class="mb-2 text-sm font-bold uppercase tracking-[0.2em] text-orange-600">Selamat datang</p>
           <h2 class="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">Masuk ke akun Anda</h2>
-          <p class="mt-3 leading-7 text-slate-500">Gunakan akun staff yang telah didaftarkan oleh administrator.</p>
+          <p class="mt-3 leading-7 text-slate-500">Gunakan akun yang telah didaftarkan oleh tim HR atau administrator.</p>
         </div>
 
         {{if .Error}}
@@ -72,7 +72,7 @@
           </div>
 
           <div>
-            <div class="mb-2 flex items-center justify-between gap-4">
+            <div class="mb-2 flex flex-col items-start gap-1 min-[380px]:flex-row min-[380px]:items-center min-[380px]:justify-between min-[380px]:gap-4">
               <label for="password" class="block text-sm font-semibold text-slate-700">Password</label>
               <span class="text-xs font-medium text-slate-400">Hubungi admin jika lupa</span>
             </div>
@@ -98,7 +98,7 @@
           </button>
         </form>
 
-        <p class="mt-8 text-center text-xs leading-5 text-slate-400">Akses terbatas untuk staff yang terdaftar. Aktivitas masuk dapat dicatat untuk keamanan.</p>
+        <p class="mt-6 text-center text-xs leading-5 text-slate-400 sm:mt-8">Akses terbatas untuk pengguna yang terdaftar. Aktivitas masuk dapat dicatat untuk keamanan.</p>
       </div>
     </div>
   </section>

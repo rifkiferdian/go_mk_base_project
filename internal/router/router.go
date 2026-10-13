@@ -11,6 +11,9 @@ import (
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 	"mksiaga/internal/access"
+	"mksiaga/internal/assessmentaspect"
+	"mksiaga/internal/assessmentcriterion"
+	"mksiaga/internal/assessmentrule"
 	"mksiaga/internal/auth"
 	"mksiaga/internal/config"
 	"mksiaga/internal/dashboard"
@@ -76,6 +79,9 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 	authorized.POST("/logout", authHandler.Logout)
 	if db != nil {
 		accessHandler := access.NewHandler(cfg.AppName, access.NewService(access.NewRepository(db)), navigationService)
+		assessmentAspectHandler := assessmentaspect.NewHandler(cfg.AppName, assessmentaspect.NewService(assessmentaspect.NewRepository(db)), navigationService)
+		assessmentCriterionHandler := assessmentcriterion.NewHandler(cfg.AppName, assessmentcriterion.NewService(assessmentcriterion.NewRepository(db)), navigationService)
+		assessmentRuleHandler := assessmentrule.NewHandler(cfg.AppName, assessmentrule.NewService(assessmentrule.NewRepository(db)), navigationService)
 		profileHandler := profile.NewHandler(cfg.AppName, profile.NewService(profile.NewRepository(db)), navigationService)
 		storeHandler := storeManagement.NewHandler(cfg.AppName, storeManagement.NewService(storeManagement.NewRepository(db)), navigationService)
 		sessionHandler := sessionmanagement.NewHandler(cfg.AppName, sessionmanagement.NewService(sessionmanagement.NewRepository(db)), navigationService)
@@ -108,6 +114,18 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 		master.POST("/stores", auth.RequirePermission(db, "stores.create"), storeHandler.Create)
 		master.POST("/stores/:id/update", auth.RequirePermission(db, "stores.update"), storeHandler.Update)
 		master.POST("/stores/:id/delete", auth.RequirePermission(db, "stores.delete"), storeHandler.Delete)
+		master.GET("/assessment-aspects", auth.RequirePermission(db, "assessment_aspects.view"), assessmentAspectHandler.Index)
+		master.POST("/assessment-aspects", auth.RequirePermission(db, "assessment_aspects.create"), assessmentAspectHandler.Create)
+		master.POST("/assessment-aspects/:id/update", auth.RequirePermission(db, "assessment_aspects.update"), assessmentAspectHandler.Update)
+		master.POST("/assessment-aspects/:id/delete", auth.RequirePermission(db, "assessment_aspects.delete"), assessmentAspectHandler.Delete)
+		master.GET("/assessment-criteria", auth.RequirePermission(db, "assessment_criteria.view"), assessmentCriterionHandler.Index)
+		master.POST("/assessment-criteria", auth.RequirePermission(db, "assessment_criteria.create"), assessmentCriterionHandler.Create)
+		master.POST("/assessment-criteria/:id/update", auth.RequirePermission(db, "assessment_criteria.update"), assessmentCriterionHandler.Update)
+		master.POST("/assessment-criteria/:id/delete", auth.RequirePermission(db, "assessment_criteria.delete"), assessmentCriterionHandler.Delete)
+		master.GET("/assessment-score-rules", auth.RequirePermission(db, "assessment_score_rules.view"), assessmentRuleHandler.Index)
+		master.POST("/assessment-score-rules", auth.RequirePermission(db, "assessment_score_rules.create"), assessmentRuleHandler.Create)
+		master.POST("/assessment-score-rules/:criterionID/:score/update", auth.RequirePermission(db, "assessment_score_rules.update"), assessmentRuleHandler.Update)
+		master.POST("/assessment-score-rules/:criterionID/:score/delete", auth.RequirePermission(db, "assessment_score_rules.delete"), assessmentRuleHandler.Delete)
 	}
 	r.GET("/healthz", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
