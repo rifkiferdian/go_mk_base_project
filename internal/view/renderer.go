@@ -8,6 +8,17 @@ import (
 	"github.com/gin-gonic/gin/render"
 )
 
+func dict(values ...any) map[string]any {
+	result := make(map[string]any, len(values)/2)
+	for i := 0; i+1 < len(values); i += 2 {
+		key, ok := values[i].(string)
+		if ok {
+			result[key] = values[i+1]
+		}
+	}
+	return result
+}
+
 // Each page has its own template set, so content blocks cannot overwrite other pages.
 type Renderer struct{ pages map[string]*template.Template }
 
@@ -22,7 +33,7 @@ func New(root string) (*Renderer, error) {
 		if folder == "layouts" || folder == "partials" {
 			continue
 		}
-		t, err := template.ParseGlob(filepath.Join(root, "layouts", "*.html"))
+		t, err := template.New("").Funcs(template.FuncMap{"dict": dict}).ParseGlob(filepath.Join(root, "layouts", "*.html"))
 		if err != nil {
 			return nil, fmt.Errorf("parse layouts: %w", err)
 		}

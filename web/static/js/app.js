@@ -280,6 +280,80 @@ document.querySelectorAll("[data-edit-rule]").forEach((button) => {
   });
 });
 
+document.querySelectorAll("[data-edit-organization]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const names = {
+      "job-level": ["editJobLevelDialog", "editJobLevelForm", "job-levels"],
+      position: ["editPositionDialog", "editPositionForm", "positions"],
+      department: ["editDepartmentDialog", "editDepartmentForm", "departments"],
+    };
+    const config = names[button.dataset.kind];
+    if (!config) return;
+    const dialog = document.getElementById(config[0]);
+    const form = document.getElementById(config[1]);
+    if (!dialog || !form) return;
+    form.action = `/master/${config[2]}/${button.dataset.id}/update`;
+    form.elements.code.value = button.dataset.code ?? "";
+    form.elements.name.value = button.dataset.name ?? "";
+    if (form.elements.rank_order) form.elements.rank_order.value = button.dataset.rankOrder ?? "";
+    if (form.elements.job_level_id) form.elements.job_level_id.value = button.dataset.jobLevelId ?? "";
+    dialog.showModal();
+  });
+});
+
+document.querySelectorAll("[data-edit-employee]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const dialog = document.getElementById("editEmployeeDialog");
+    const form = document.getElementById("editEmployeeForm");
+    if (!dialog || !form) return;
+    form.action = `/master/employees/${button.dataset.id}/update`;
+    form.elements.employee_number.value = button.dataset.number ?? "";
+    form.elements.name.value = button.dataset.name ?? "";
+    form.elements.email.value = button.dataset.email ?? "";
+    form.elements.phone.value = button.dataset.phone ?? "";
+    form.elements.status.value = button.dataset.status ?? "active";
+    dialog.showModal();
+  });
+});
+
+document.querySelectorAll("[data-edit-profile]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const dialog = document.getElementById("editProfileDialog");
+    const form = document.getElementById("editProfileForm");
+    if (!dialog || !form) return;
+    form.action = `/master/employee-profiles/${button.dataset.id}/update`;
+    const values = { birth_place: "birthPlace", birth_date: "birthDate", gender: "gender", address: "address", joined_date: "joinedDate", employment_status: "employmentStatus", photo_path: "photoPath", emergency_contact_name: "emergencyName", emergency_contact_phone: "emergencyPhone", emergency_contact_relationship: "emergencyRelationship" };
+    Object.entries(values).forEach(([field, data]) => { form.elements[field].value = button.dataset[data] ?? ""; });
+    dialog.showModal();
+  });
+});
+
+document.querySelectorAll("[data-edit-assignment]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const dialog = document.getElementById("editAssignmentDialog");
+    const form = document.getElementById("editAssignmentForm");
+    if (!dialog || !form) return;
+    form.action = `/master/employee-assignments/${button.dataset.id}/update`;
+    const values = { employee_id: "employeeId", position_id: "positionId", department_id: "departmentId", store_id: "storeId", started_at: "startedAt", ended_at: "endedAt" };
+    Object.entries(values).forEach(([field, data]) => { form.elements[field].value = button.dataset[data] ?? ""; });
+    dialog.showModal();
+  });
+});
+
+document.querySelectorAll("[data-edit-reporting]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const dialog = document.getElementById("editReportingDialog");
+    const form = document.getElementById("editReportingForm");
+    if (!dialog || !form) return;
+    form.action = `/master/employee-reporting-lines/${button.dataset.id}/update`;
+    form.elements.employee_assignment_id.value = button.dataset.employeeAssignmentId ?? "";
+    form.elements.supervisor_assignment_id.value = button.dataset.supervisorAssignmentId ?? "";
+    form.elements.started_at.value = button.dataset.startedAt ?? "";
+    form.elements.ended_at.value = button.dataset.endedAt ?? "";
+    dialog.showModal();
+  });
+});
+
 document.querySelectorAll("[data-user-store-row]").forEach((row) => {
   const checkbox = row.querySelector("[data-user-store-checkbox]");
   const role = row.querySelector("[data-user-store-role]");
@@ -323,7 +397,7 @@ document.querySelectorAll("form[data-confirm]").forEach((form) => {
   });
 });
 
-document.querySelectorAll("[data-edit-role], [data-edit-permission], [data-edit-user], [data-edit-store], [data-edit-aspect], [data-edit-criterion], [data-edit-rule]").forEach((button) => {
+document.querySelectorAll("[data-edit-role], [data-edit-permission], [data-edit-user], [data-edit-store], [data-edit-aspect], [data-edit-criterion], [data-edit-rule], [data-edit-organization], [data-edit-employee], [data-edit-profile], [data-edit-assignment], [data-edit-reporting]").forEach((button) => {
   button.title = "Edit";
 });
 

@@ -11,6 +11,20 @@
 .fa-solid[class~="size-[19px]"] { font-size: 19px; }
 .fa-solid[class~="size-[22px]"] { font-size: 22px; }
 
+/* Keep the sidebar scrollable on short screens without showing a distracting
+   native scrollbar beside the navigation items. */
+.app-sidebar-nav {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  overscroll-behavior: contain;
+}
+
+.app-sidebar-nav::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
 /* Compact icon actions for access-management tables. The original text remains
    in the DOM so screen readers still announce each action correctly. */
 [data-edit-role],
@@ -20,6 +34,11 @@
 [data-edit-aspect],
 [data-edit-criterion],
 [data-edit-rule],
+[data-edit-organization],
+[data-edit-employee],
+[data-edit-profile],
+[data-edit-assignment],
+[data-edit-reporting],
 form[data-confirm] > button {
   position: relative;
   display: inline-grid;
@@ -41,6 +60,11 @@ form[data-confirm] > button {
 [data-edit-aspect]::before,
 [data-edit-criterion]::before,
 [data-edit-rule]::before,
+[data-edit-organization]::before,
+[data-edit-employee]::before,
+[data-edit-profile]::before,
+[data-edit-assignment]::before,
+[data-edit-reporting]::before,
 form[data-confirm] > button::before {
   position: absolute;
   top: 50%;
@@ -61,7 +85,12 @@ form[data-confirm] > button::before {
 [data-edit-store]::before,
 [data-edit-aspect]::before,
 [data-edit-criterion]::before,
-[data-edit-rule]::before {
+[data-edit-rule]::before,
+[data-edit-organization]::before,
+[data-edit-employee]::before,
+[data-edit-profile]::before,
+[data-edit-assignment]::before,
+[data-edit-reporting]::before {
   content: "\f304";
 }
 
@@ -75,7 +104,12 @@ form[data-confirm] > button::before {
 [data-edit-store],
 [data-edit-aspect],
 [data-edit-criterion],
-[data-edit-rule] {
+[data-edit-rule],
+[data-edit-organization],
+[data-edit-employee],
+[data-edit-profile],
+[data-edit-assignment],
+[data-edit-reporting] {
   background-color: var(--color-orange-50);
   color: var(--color-orange-600);
   box-shadow: inset 0 0 0 1px var(--color-orange-100);
@@ -93,7 +127,12 @@ form[data-confirm] > button {
 [data-edit-store]:hover,
 [data-edit-aspect]:hover,
 [data-edit-criterion]:hover,
-[data-edit-rule]:hover {
+[data-edit-rule]:hover,
+[data-edit-organization]:hover,
+[data-edit-employee]:hover,
+[data-edit-profile]:hover,
+[data-edit-assignment]:hover,
+[data-edit-reporting]:hover {
   background-color: var(--color-orange-500);
   color: white;
   box-shadow: 0 4px 10px color-mix(in srgb, var(--color-orange-500) 25%, transparent);

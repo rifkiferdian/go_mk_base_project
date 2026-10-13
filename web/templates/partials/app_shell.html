@@ -2,7 +2,7 @@
 <div id="sidebarBackdrop" class="fixed inset-0 z-40 hidden bg-slate-950/50 backdrop-blur-sm lg:hidden"></div>
 <aside id="dashboardSidebar" class="fixed inset-y-0 left-0 z-50 flex w-72 -translate-x-full flex-col border-r border-slate-200 bg-white px-4 py-5 shadow-xl transition-transform duration-300 lg:translate-x-0 lg:shadow-none">
   <div class="flex items-center justify-between px-2 pb-7"><a href="/" class="flex items-center gap-3"><span class="grid size-11 place-items-center rounded-2xl bg-orange-500 text-white shadow-lg shadow-orange-200"><i class="fa-solid fa-shield-halved size-6" aria-hidden="true"></i></span><span><strong class="block text-sm tracking-wide">Security Watch</strong><small class="mt-0.5 block text-[11px] text-slate-400">Portal keamanan internal</small></span></a><button id="closeSidebar" type="button" class="grid size-9 place-items-center rounded-xl text-slate-500 hover:bg-slate-100 lg:hidden" aria-label="Tutup menu"><i class="fa-solid fa-xmark size-5" aria-hidden="true"></i></button></div>
-  <nav class="flex-1 overflow-y-auto" aria-label="Navigasi aplikasi">
+  <nav class="app-sidebar-nav flex-1 overflow-y-auto" aria-label="Navigasi aplikasi">
     {{range .Menus}}
     <p class="mb-2 mt-6 px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400 first:mt-0">{{.Label}}</p>
     {{range .Items}}
@@ -22,6 +22,13 @@
           {{if eq .Key "roles"}}<i class="fa-solid fa-user-shield size-5 shrink-0" aria-hidden="true"></i>{{end}}
           {{if eq .Key "permissions"}}<i class="fa-solid fa-key size-5 shrink-0" aria-hidden="true"></i>{{end}}
           {{if eq .Key "stores"}}<i class="fa-solid fa-store size-5 shrink-0" aria-hidden="true"></i>{{end}}
+          {{if eq .Key "job-levels"}}<i class="fa-solid fa-ranking-star size-5 shrink-0" aria-hidden="true"></i>{{end}}
+          {{if eq .Key "positions"}}<i class="fa-solid fa-briefcase size-5 shrink-0" aria-hidden="true"></i>{{end}}
+          {{if eq .Key "departments"}}<i class="fa-solid fa-building-user size-5 shrink-0" aria-hidden="true"></i>{{end}}
+          {{if eq .Key "employees"}}<i class="fa-solid fa-users size-5 shrink-0" aria-hidden="true"></i>{{end}}
+          {{if eq .Key "employee-profiles"}}<i class="fa-solid fa-address-card size-5 shrink-0" aria-hidden="true"></i>{{end}}
+          {{if eq .Key "employee-assignments"}}<i class="fa-solid fa-map-location-dot size-5 shrink-0" aria-hidden="true"></i>{{end}}
+          {{if eq .Key "employee-reporting-lines"}}<i class="fa-solid fa-sitemap size-5 shrink-0" aria-hidden="true"></i>{{end}}
           {{if eq .Key "assessment-aspects"}}<i class="fa-solid fa-list-check size-5 shrink-0" aria-hidden="true"></i>{{end}}
           {{if eq .Key "assessment-criteria"}}<i class="fa-solid fa-layer-group size-5 shrink-0" aria-hidden="true"></i>{{end}}
           {{if eq .Key "assessment-score-rules"}}<i class="fa-solid fa-sliders size-5 shrink-0" aria-hidden="true"></i>{{end}}
