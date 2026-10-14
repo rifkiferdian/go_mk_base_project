@@ -41,6 +41,7 @@
     <a href="{{.URL}}" {{if .Active}}aria-current="page"{{end}} class="mb-1 flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition {{if .Active}}bg-orange-50 font-bold text-orange-700{{else}}font-medium text-slate-600 hover:bg-slate-50 hover:text-orange-600{{end}}">
       {{if eq .Key "dashboard"}}<i class="fa-solid fa-table-cells-large size-5" aria-hidden="true"></i>{{end}}
       {{if eq .Key "trainee-assessments"}}<i class="fa-solid fa-clipboard-check size-5" aria-hidden="true"></i>{{end}}
+      {{if eq .Key "trainee-assessment-reports"}}<i class="fa-solid fa-chart-pie size-5" aria-hidden="true"></i>{{end}}
       {{if eq .Key "users"}}<i class="fa-solid fa-user-plus size-5" aria-hidden="true"></i>{{end}}
       {{if eq .Key "roles"}}<i class="fa-solid fa-user-shield size-5" aria-hidden="true"></i>{{end}}
       {{if eq .Key "permissions"}}<i class="fa-solid fa-key size-5" aria-hidden="true"></i>{{end}}

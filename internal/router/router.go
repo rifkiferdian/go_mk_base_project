@@ -13,6 +13,7 @@ import (
 	"mksiaga/internal/access"
 	"mksiaga/internal/assessmentaspect"
 	"mksiaga/internal/assessmentcriterion"
+	"mksiaga/internal/assessmentreport"
 	"mksiaga/internal/assessmentrule"
 	"mksiaga/internal/auth"
 	"mksiaga/internal/config"
@@ -88,6 +89,7 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 		organizationHandler := organization.NewHandler(cfg.AppName, organization.NewService(organization.NewRepository(db)), navigationService)
 		employeeHandler := employee.NewHandler(cfg.AppName, employee.NewService(employee.NewRepository(db)), navigationService)
 		assessmentHandler := traineeassessment.NewHandler(cfg.AppName, traineeassessment.NewService(traineeassessment.NewRepository(db)), navigationService)
+		assessmentReportHandler := assessmentreport.NewHandler(cfg.AppName, assessmentreport.NewService(assessmentreport.NewRepository(db)), navigationService)
 		profileHandler := profile.NewHandler(cfg.AppName, profile.NewService(profile.NewRepository(db)), navigationService)
 		storeHandler := storeManagement.NewHandler(cfg.AppName, storeManagement.NewService(storeManagement.NewRepository(db)), navigationService)
 		sessionHandler := sessionmanagement.NewHandler(cfg.AppName, sessionmanagement.NewService(sessionmanagement.NewRepository(db)), navigationService)
@@ -101,6 +103,7 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 		authorized.GET("/assessments/:id/edit", auth.RequirePermission(db, "trainee_assessments.update"), assessmentHandler.Edit)
 		authorized.POST("/assessments/:id/update", auth.RequirePermission(db, "trainee_assessments.update"), assessmentHandler.Update)
 		authorized.POST("/assessments/:id/delete", auth.RequirePermission(db, "trainee_assessments.delete"), assessmentHandler.Delete)
+		authorized.GET("/reports/trainee-assessments", auth.RequirePermission(db, "trainee_assessment_reports.view"), assessmentReportHandler.Index)
 		authorized.GET("/profile/sessions", sessionHandler.Index)
 		authorized.POST("/profile/sessions/revoke-others", sessionHandler.RevokeOthers)
 		authorized.POST("/profile/sessions/:id/revoke", sessionHandler.Revoke)
