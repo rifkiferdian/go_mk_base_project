@@ -79,9 +79,10 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 	if db != nil {
 		navigationService = navigation.NewService(db)
 	}
-	authorized.GET("/", dashboard.NewHandler(cfg.AppName, navigationService).Index)
 	authorized.POST("/logout", authHandler.Logout)
 	if db != nil {
+		assessmentReportService := assessmentreport.NewService(assessmentreport.NewRepository(db))
+		authorized.GET("/", dashboard.NewHandler(cfg.AppName, assessmentReportService, navigationService).Index)
 		accessHandler := access.NewHandler(cfg.AppName, access.NewService(access.NewRepository(db)), navigationService)
 		assessmentAspectHandler := assessmentaspect.NewHandler(cfg.AppName, assessmentaspect.NewService(assessmentaspect.NewRepository(db)), navigationService)
 		assessmentCriterionHandler := assessmentcriterion.NewHandler(cfg.AppName, assessmentcriterion.NewService(assessmentcriterion.NewRepository(db)), navigationService)
@@ -89,7 +90,7 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 		organizationHandler := organization.NewHandler(cfg.AppName, organization.NewService(organization.NewRepository(db)), navigationService)
 		employeeHandler := employee.NewHandler(cfg.AppName, employee.NewService(employee.NewRepository(db)), navigationService)
 		assessmentHandler := traineeassessment.NewHandler(cfg.AppName, traineeassessment.NewService(traineeassessment.NewRepository(db)), navigationService)
-		assessmentReportHandler := assessmentreport.NewHandler(cfg.AppName, assessmentreport.NewService(assessmentreport.NewRepository(db)), navigationService)
+		assessmentReportHandler := assessmentreport.NewHandler(cfg.AppName, assessmentReportService, navigationService)
 		profileHandler := profile.NewHandler(cfg.AppName, profile.NewService(profile.NewRepository(db)), navigationService)
 		storeHandler := storeManagement.NewHandler(cfg.AppName, storeManagement.NewService(storeManagement.NewRepository(db)), navigationService)
 		sessionHandler := sessionmanagement.NewHandler(cfg.AppName, sessionmanagement.NewService(sessionmanagement.NewRepository(db)), navigationService)

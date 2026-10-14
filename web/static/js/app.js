@@ -143,6 +143,8 @@ document.querySelectorAll("[data-open-dialog]").forEach((button) => {
     const dialog = document.getElementById(button.dataset.openDialog);
     if (!dialog) return;
     dialog.showModal();
+    const content = dialog.firstElementChild;
+    if (content) content.scrollTop = 0;
     document.documentElement.classList.add("overflow-hidden");
     document.body.classList.add("overflow-hidden");
   });
@@ -372,12 +374,130 @@ if (assessmentForm) {
   const assessmentDate = assessmentForm.elements.assessment_date;
   if (assessmentDate && !assessmentDate.value) assessmentDate.value = new Date().toISOString().slice(0, 10);
 
+  const enhanceTraineeSelect = () => {
+    if (!trainee || trainee.dataset.enhanced === "true") return;
+    trainee.dataset.enhanced = "true";
+    trainee.required = false;
+
+    const options = [...trainee.options].filter((option) => option.value);
+    const wrapper = document.createElement("div");
+    wrapper.className = "relative mt-2";
+    wrapper.innerHTML = `
+      <div class="relative">
+        <i class="fa-solid fa-magnifying-glass pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-400"></i>
+        <input type="text" data-trainee-search autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="traineeAutocompleteList" required placeholder="Cari NIK atau nama trainee..." class="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-10 text-sm font-normal outline-none transition focus:border-orange-400 focus:ring-4 focus:ring-orange-100">
+        <button type="button" data-trainee-clear class="absolute right-2 top-1/2 hidden size-8 -translate-y-1/2 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600" aria-label="Hapus pilihan"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div id="traineeAutocompleteList" data-trainee-options role="listbox" class="absolute z-40 mt-2 hidden max-h-72 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10"></div>`;
+    trainee.before(wrapper);
+    trainee.classList.add("hidden");
+
+    const search = wrapper.querySelector("[data-trainee-search]");
+    const list = wrapper.querySelector("[data-trainee-options]");
+    const clear = wrapper.querySelector("[data-trainee-clear]");
+    let activeIndex = -1;
+    let visibleOptions = [];
+
+    const closeList = () => {
+      list.classList.add("hidden");
+      search.setAttribute("aria-expanded", "false");
+      activeIndex = -1;
+    };
+
+    const choose = (option) => {
+      trainee.value = option.value;
+      search.value = option.textContent.trim();
+      search.setCustomValidity("");
+      clear.classList.remove("hidden");
+      clear.classList.add("grid");
+      trainee.dispatchEvent(new Event("change", { bubbles: true }));
+      closeList();
+    };
+
+    const render = () => {
+      const query = search.value.trim().toLowerCase();
+      visibleOptions = options.filter((option) => option.textContent.toLowerCase().includes(query));
+      list.replaceChildren();
+      visibleOptions.slice(0, 50).forEach((option, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.setAttribute("role", "option");
+        button.className = "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-xs text-slate-700 hover:bg-orange-50 hover:text-orange-700";
+        button.innerHTML = '<span class="grid size-8 shrink-0 place-items-center rounded-lg bg-orange-100 font-bold text-orange-700"><i class="fa-solid fa-user-graduate"></i></span><span class="min-w-0"><strong class="block truncate"></strong><small class="mt-0.5 block truncate text-[10px] text-slate-400"></small></span>';
+        button.querySelector("strong").textContent = option.textContent.trim();
+        button.querySelector("small").textContent = `${option.dataset.position || "—"} · ${option.dataset.department || "—"} · ${option.dataset.store || "—"}`;
+        button.addEventListener("mousedown", (event) => event.preventDefault());
+        button.addEventListener("click", () => choose(option));
+        list.append(button);
+        if (index === activeIndex) {
+          button.classList.add("bg-orange-50", "text-orange-700");
+          button.scrollIntoView({ block: "nearest" });
+        }
+      });
+      if (!visibleOptions.length) {
+        const empty = document.createElement("p");
+        empty.className = "px-3 py-5 text-center text-xs text-slate-400";
+        empty.textContent = "Trainee tidak ditemukan.";
+        list.append(empty);
+      }
+      list.classList.remove("hidden");
+      search.setAttribute("aria-expanded", "true");
+    };
+
+    search.addEventListener("focus", render);
+    search.addEventListener("input", () => {
+      if (trainee.value) {
+        trainee.value = "";
+        trainee.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+      clear.classList.add("hidden");
+      clear.classList.remove("grid");
+      search.setCustomValidity("Pilih trainee dari hasil pencarian.");
+      activeIndex = -1;
+      render();
+    });
+    search.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault();
+        if (list.classList.contains("hidden")) render();
+        const last = Math.min(visibleOptions.length, 50) - 1;
+        activeIndex = event.key === "ArrowDown" ? Math.min(activeIndex + 1, last) : Math.max(activeIndex - 1, 0);
+        render();
+      } else if (event.key === "Enter" && activeIndex >= 0 && visibleOptions[activeIndex]) {
+        event.preventDefault();
+        choose(visibleOptions[activeIndex]);
+      } else if (event.key === "Escape") closeList();
+    });
+    clear.addEventListener("click", () => {
+      trainee.value = "";
+      search.value = "";
+      search.setCustomValidity("Pilih trainee dari hasil pencarian.");
+      clear.classList.add("hidden");
+      clear.classList.remove("grid");
+      trainee.dispatchEvent(new Event("change", { bubbles: true }));
+      search.focus();
+      render();
+    });
+    document.addEventListener("click", (event) => {
+      if (!wrapper.contains(event.target)) closeList();
+    });
+
+    const selected = trainee.selectedOptions[0];
+    if (selected?.value) choose(selected);
+  };
+
+  enhanceTraineeSelect();
+
   const updateTraineeSummary = () => {
     const option = trainee?.selectedOptions[0];
+    const traineeSelected = Boolean(trainee?.value);
     const values = { number: "number", position: "position", department: "department", store: "store" };
     Object.entries(values).forEach(([target, data]) => {
       const element = assessmentForm.querySelector(`[data-trainee-${target}]`);
       if (element) element.textContent = option?.dataset[data] || "—";
+    });
+    assessmentForm.querySelectorAll('input[type="radio"][name^="score_"]').forEach((input) => {
+      input.disabled = !traineeSelected;
     });
   };
   trainee?.addEventListener("change", updateTraineeSummary);

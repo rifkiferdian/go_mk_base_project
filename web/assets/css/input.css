@@ -25,6 +25,17 @@
   height: 0;
 }
 
+#assessmentForm label:has(input[type="radio"][name^="score_"]:disabled) {
+  cursor: not-allowed;
+}
+
+#assessmentForm input[type="radio"][name^="score_"]:disabled + span {
+  border-color: var(--color-slate-200);
+  background-color: var(--color-slate-100);
+  color: var(--color-slate-400);
+  opacity: .6;
+}
+
 /* Compact icon actions for access-management tables. The original text remains
    in the DOM so screen readers still announce each action correctly. */
 [data-edit-role],
@@ -152,6 +163,9 @@ form[data-confirm] > button:disabled {
 }
 
 dialog[id^="assessmentDetail"] {
+  width: min(56rem, calc(100vw - 2rem));
+  max-width: calc(100vw - 2rem);
+  max-height: calc(100dvh - 2rem);
   overflow: hidden;
   overscroll-behavior: contain;
 }
@@ -160,16 +174,48 @@ dialog[id^="assessmentDetail"] > div {
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior-y: contain;
-  scrollbar-width: none;
+  max-height: calc(100dvh - 2rem);
+  scrollbar-color: var(--color-orange-300) var(--color-slate-100);
+  scrollbar-width: thin;
   -ms-overflow-style: none;
   touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
 }
 
 dialog[id^="assessmentDetail"] > div::-webkit-scrollbar {
-  display: none;
-  width: 0;
-  height: 0;
+  width: .375rem;
+}
+
+dialog[id^="assessmentDetail"] > div::-webkit-scrollbar-track {
+  background: var(--color-slate-100);
+}
+
+dialog[id^="assessmentDetail"] > div::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background: var(--color-orange-300);
+}
+
+@media (max-height: 500px) {
+  dialog[id^="assessmentDetail"] {
+    height: calc(100dvh - .5rem);
+    max-height: calc(100dvh - .5rem);
+  }
+
+  dialog[id^="assessmentDetail"] > div {
+    padding: .5rem .75rem;
+  }
+
+  dialog[id^="assessmentDetail"] > div > div:first-child p:first-child {
+    display: none;
+  }
+
+  dialog[id^="assessmentDetail"] > div > div:first-child h2 {
+    margin-top: 0;
+  }
+
+  dialog[id^="assessmentDetail"] .mt-5 {
+    margin-top: .5rem;
+  }
 }
 
 @media (min-width: 640px) {
@@ -234,14 +280,16 @@ dialog[id^="assessmentDetail"] > div::-webkit-scrollbar {
 @media (max-width: 639px) {
 
   dialog[id^="assessmentDetail"] {
-    width: calc(100% - 1rem);
-    height: auto;
-    max-height: calc(100dvh - 1rem);
+    width: calc(100vw - .75rem);
+    max-width: calc(100vw - .75rem);
+    height: calc(100dvh - .75rem);
+    max-height: calc(100dvh - .75rem);
     border-radius: 1rem;
   }
 
   dialog[id^="assessmentDetail"] > div {
-    max-height: calc(100dvh - 1rem);
+    height: 100%;
+    max-height: none;
     padding: .75rem;
     overscroll-behavior-y: contain;
   }

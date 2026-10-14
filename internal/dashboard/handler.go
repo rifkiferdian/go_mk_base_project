@@ -7,20 +7,28 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"mksiaga/internal/assessmentreport"
 	"mksiaga/internal/auth"
 	"mksiaga/internal/navigation"
 )
 
 type Handler struct {
 	appName    string
+	reports    *assessmentreport.Service
 	navigation *navigation.Service
 }
 
-func NewHandler(appName string, navigationService *navigation.Service) *Handler {
-	return &Handler{appName: appName, navigation: navigationService}
+func NewHandler(appName string, reportService *assessmentreport.Service, navigationService *navigation.Service) *Handler {
+	return &Handler{appName: appName, reports: reportService, navigation: navigationService}
 }
 
 func (h *Handler) Index(c *gin.Context) {
+	report, err := h.reports.Report(c.Request.Context())
+	if err != nil {
+		slog.Error("prepare dashboard report", "error", err)
+		c.Redirect(http.StatusSeeOther, "/errors/500")
+		return
+	}
 	user, _ := auth.CurrentUser(c)
 	menus, err := h.navigation.Menus(c.Request.Context(), user, "dashboard")
 	if err != nil {
@@ -45,6 +53,7 @@ func (h *Handler) Index(c *gin.Context) {
 		"StoreName":     user.StoreName,
 		"RoleName":      user.RoleName,
 		"DateLabel":     indonesianDate(time.Now()),
+		"Report":        report,
 		"Menus":         menus,
 		"CSRFToken":     csrfToken,
 	})
