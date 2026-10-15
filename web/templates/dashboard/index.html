@@ -13,7 +13,14 @@
         </div>
       </section>
 
-      <section class="my-6 grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Ringkasan penilaian">
+      <form method="get" class="mt-5 flex flex-wrap items-center gap-2">
+        <select id="dashboard-department" name="department_id" aria-label="Filter bagian" class="h-10 w-36 rounded-xl border border-orange-500 bg-white px-3 text-xs font-medium text-slate-700 outline-none transition focus:ring-2 focus:ring-orange-100"><option value="">Semua bagian</option>{{range .Departments}}<option value="{{.ID}}" {{if eq .ID $.Filter.DepartmentID}}selected{{end}}>{{.Name}}</option>{{end}}</select>
+        <select id="dashboard-rubric" name="rubric_id" aria-label="Filter periode" class="h-10 w-40 rounded-xl border border-orange-500 bg-white px-3 text-xs font-medium text-slate-700 outline-none transition focus:ring-2 focus:ring-orange-100"><option value="">Semua periode</option>{{range .Rubrics}}<option value="{{.ID}}" data-department="{{.DepartmentID}}" {{if eq .ID $.Filter.RubricID}}selected{{end}}>{{.Name}} · {{.PeriodName}}</option>{{end}}</select>
+        <button type="submit" class="inline-flex h-10 min-w-[96px] items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-orange-500 px-4 text-xs font-bold text-white shadow-sm transition hover:bg-orange-600"><i class="fa-solid fa-filter text-[10px]"></i><span>Terapkan</span></button>
+        {{if or .Filter.DepartmentID .Filter.RubricID}}<a href="/" class="inline-flex h-10 items-center px-2 text-xs font-bold text-slate-500 transition hover:text-orange-600">Reset</a>{{end}}
+      </form>
+
+      <section class="my-5 grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Ringkasan penilaian">
         <article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:p-5"><div class="flex items-start justify-between gap-3"><div><p class="text-[11px] font-semibold text-slate-500">Total penilaian</p><strong class="mt-2 block text-2xl tracking-tight text-slate-950 sm:text-3xl">{{.Report.Summary.AssessmentCount}}</strong></div><span class="grid size-10 shrink-0 place-items-center rounded-xl bg-orange-100 text-orange-600"><i class="fa-solid fa-clipboard-check"></i></span></div><p class="mt-3 text-[10px] text-slate-400">Penilaian yang telah diajukan</p></article>
         <article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:p-5"><div class="flex items-start justify-between gap-3"><div><p class="text-[11px] font-semibold text-slate-500">Trainee dinilai</p><strong class="mt-2 block text-2xl tracking-tight text-slate-950 sm:text-3xl">{{.Report.Summary.TraineeCount}}</strong></div><span class="grid size-10 shrink-0 place-items-center rounded-xl bg-blue-100 text-blue-600"><i class="fa-solid fa-user-graduate"></i></span></div><p class="mt-3 text-[10px] text-slate-400">Trainee unik dalam penilaian</p></article>
         <article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:p-5"><div class="flex items-start justify-between gap-3"><div><p class="text-[11px] font-semibold text-slate-500">Rata-rata nilai</p><strong class="mt-2 block text-2xl tracking-tight text-slate-950 sm:text-3xl">{{printf "%.2f" .Report.Summary.AverageScore}}</strong></div><span class="grid size-10 shrink-0 place-items-center rounded-xl bg-amber-100 text-amber-600"><i class="fa-solid fa-chart-line"></i></span></div><p class="mt-3 text-[10px] text-slate-400">Dari skala penilaian 1–5</p></article>
@@ -25,7 +32,7 @@
         <div class="space-y-5">
           <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"><div class="flex items-start justify-between gap-4"><div><p class="text-[10px] font-bold uppercase tracking-[0.16em] text-orange-600">Performa kompetensi</p><h2 class="mt-1 text-base font-bold text-slate-900">Rata-rata per aspek</h2><p class="mt-1 text-xs text-slate-500">Capaian setiap aspek dari seluruh penilaian final.</p></div><span class="rounded-lg bg-slate-100 px-2.5 py-1.5 text-[10px] font-bold text-slate-500">Skala 5</span></div><div class="mt-6 grid gap-x-8 gap-y-5 md:grid-cols-2">{{range .Report.Aspects}}<div><div class="mb-2 flex items-center justify-between gap-4"><span class="truncate text-xs font-semibold text-slate-700">{{.Name}}</span><strong class="text-xs text-orange-600">{{printf "%.2f" .Average}}</strong></div><div class="h-2 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-gradient-to-r from-orange-400 to-orange-600" style="width: {{printf "%.0f" .Percentage}}%"></div></div></div>{{else}}<p class="text-sm text-slate-400">Data aspek belum tersedia.</p>{{end}}</div></article>
 
-          <article class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"><div class="flex items-center justify-between gap-4 border-b border-slate-100 p-5 sm:px-6"><div><h2 class="text-base font-bold text-slate-900">Penilaian terbaru</h2><p class="mt-1 text-xs text-slate-500">Hasil terbaru yang sudah diajukan.</p></div><a href="/assessments" class="shrink-0 text-xs font-bold text-orange-600 hover:text-orange-700">Lihat semua <i class="fa-solid fa-arrow-right ml-1"></i></a></div><div class="divide-y divide-slate-100">{{range $i, $x := .Report.Recent}}{{if lt $i 5}}<div class="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-5 py-4 transition hover:bg-orange-50/40 sm:px-6"><span class="grid size-10 place-items-center rounded-xl bg-orange-50 text-xs font-bold text-orange-700">{{addOne $i}}</span><div class="min-w-0"><strong class="block truncate text-xs text-slate-800">{{$x.EmployeeName}}</strong><small class="mt-1 block truncate text-[10px] text-slate-400">{{$x.EmployeeNumber}} · {{$x.DepartmentName}} · Bulan {{$x.TrainingMonth}}</small></div><div class="text-right"><strong class="block text-base text-orange-600">{{printf "%.2f" $x.AverageScore}}</strong><small class="block max-w-28 truncate text-[9px] text-slate-400">{{$x.Rating}}</small></div></div>{{end}}{{else}}<p class="p-6 text-sm text-slate-400">Belum ada penilaian terbaru.</p>{{end}}</div></article>
+          <article class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"><div class="flex items-center justify-between gap-4 border-b border-slate-100 p-5 sm:px-6"><div><h2 class="text-base font-bold text-slate-900">Penilaian terbaru</h2><p class="mt-1 text-xs text-slate-500">Hasil terbaru sesuai filter bagian dan periode.</p></div><a href="/assessments" class="shrink-0 text-xs font-bold text-orange-600 hover:text-orange-700">Lihat semua <i class="fa-solid fa-arrow-right ml-1"></i></a></div><div class="divide-y divide-slate-100">{{range $i, $x := .Report.Recent}}{{if lt $i 5}}<div class="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-5 py-4 transition hover:bg-orange-50/40 sm:px-6"><span class="grid size-10 place-items-center rounded-xl bg-orange-50 text-xs font-bold text-orange-700">{{addOne $i}}</span><div class="min-w-0"><strong class="block truncate text-xs text-slate-800">{{$x.EmployeeName}}</strong><small class="mt-1 block truncate text-[10px] text-slate-400">{{$x.EmployeeNumber}} · {{$x.DepartmentName}} · Bulan {{$x.TrainingMonth}} · {{$x.PeriodName}}</small></div><div class="text-right"><strong class="block text-base text-orange-600">{{printf "%.2f" $x.AverageScore}}</strong><small class="block max-w-28 truncate text-[9px] text-slate-400">{{$x.Rating}}</small></div></div>{{end}}{{else}}<p class="p-6 text-sm text-slate-400">Belum ada penilaian terbaru.</p>{{end}}</div></article>
         </div>
 
         <aside class="space-y-5">
@@ -40,4 +47,21 @@
     {{template "appFooter" .}}
   </div>
 </div>
+<script>
+(() => {
+  const department = document.getElementById('dashboard-department');
+  const rubric = document.getElementById('dashboard-rubric');
+  if (!department || !rubric) return;
+  const sync = () => {
+    const selectedDepartment = department.value;
+    Array.from(rubric.options).forEach((option, index) => {
+      if (index > 0) option.hidden = selectedDepartment !== '' && option.dataset.department !== selectedDepartment;
+    });
+    const selected = rubric.options[rubric.selectedIndex];
+    if (selected && selected.hidden) rubric.value = '';
+  };
+  department.addEventListener('change', sync);
+  sync();
+})();
+</script>
 {{end}}

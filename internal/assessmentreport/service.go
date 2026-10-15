@@ -7,12 +7,16 @@ type Service struct{ repository *Repository }
 func NewService(repository *Repository) *Service { return &Service{repository: repository} }
 
 func (s *Service) Report(ctx context.Context) (Report, error) {
+	return s.ReportWithFilter(ctx, Filter{})
+}
+
+func (s *Service) ReportWithFilter(ctx context.Context, filter Filter) (Report, error) {
 	var report Report
 	var err error
-	if report.Summary, err = s.repository.Summary(ctx); err != nil {
+	if report.Summary, err = s.repository.Summary(ctx, filter); err != nil {
 		return report, err
 	}
-	counts, err := s.repository.Distribution(ctx)
+	counts, err := s.repository.Distribution(ctx, filter)
 	if err != nil {
 		return report, err
 	}
@@ -27,17 +31,24 @@ func (s *Service) Report(ctx context.Context) (Report, error) {
 		report.Distribution = append(report.Distribution, Distribution{Label: label, Count: counts[label], Percentage: percentage, Offset: -offset, Color: colors[i]})
 		offset += percentage
 	}
-	if report.Aspects, err = s.repository.Aspects(ctx); err != nil {
+	if report.Aspects, err = s.repository.Aspects(ctx, filter); err != nil {
 		return report, err
 	}
-	if report.Stores, err = s.repository.Stores(ctx); err != nil {
+	if report.Stores, err = s.repository.Stores(ctx, filter); err != nil {
 		return report, err
 	}
-	if report.Departments, err = s.repository.Departments(ctx); err != nil {
+	if report.Departments, err = s.repository.Departments(ctx, filter); err != nil {
 		return report, err
 	}
-	if report.Recent, err = s.repository.Recent(ctx); err != nil {
+	if report.Periods, err = s.repository.Periods(ctx, filter); err != nil {
+		return report, err
+	}
+	if report.Recent, err = s.repository.Recent(ctx, filter); err != nil {
 		return report, err
 	}
 	return report, nil
+}
+
+func (s *Service) FilterOptions(ctx context.Context) ([]DepartmentOption, []RubricOption, error) {
+	return s.repository.FilterOptions(ctx)
 }

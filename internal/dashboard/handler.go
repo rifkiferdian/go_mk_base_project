@@ -3,6 +3,7 @@ package dashboard
 import (
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -23,9 +24,18 @@ func NewHandler(appName string, reportService *assessmentreport.Service, navigat
 }
 
 func (h *Handler) Index(c *gin.Context) {
-	report, err := h.reports.Report(c.Request.Context())
+	departmentID, _ := strconv.ParseUint(c.Query("department_id"), 10, 64)
+	rubricID, _ := strconv.ParseUint(c.Query("rubric_id"), 10, 64)
+	filter := assessmentreport.Filter{DepartmentID: departmentID, RubricID: rubricID}
+	report, err := h.reports.ReportWithFilter(c.Request.Context(), filter)
 	if err != nil {
 		slog.Error("prepare dashboard report", "error", err)
+		c.Redirect(http.StatusSeeOther, "/errors/500")
+		return
+	}
+	departments, rubrics, err := h.reports.FilterOptions(c.Request.Context())
+	if err != nil {
+		slog.Error("prepare dashboard filters", "error", err)
 		c.Redirect(http.StatusSeeOther, "/errors/500")
 		return
 	}
@@ -54,6 +64,9 @@ func (h *Handler) Index(c *gin.Context) {
 		"RoleName":      user.RoleName,
 		"DateLabel":     indonesianDate(time.Now()),
 		"Report":        report,
+		"Filter":        filter,
+		"Departments":   departments,
+		"Rubrics":       rubrics,
 		"Menus":         menus,
 		"CSRFToken":     csrfToken,
 	})

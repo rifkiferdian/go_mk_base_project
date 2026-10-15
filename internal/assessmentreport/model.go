@@ -30,10 +30,28 @@ type RecentResult struct {
 	DepartmentName string
 	StoreName      string
 	TrainingMonth  int
+	PeriodName     string
 	AssessmentDate string
 	AssessorName   string
 	AverageScore   float64
 	Rating         string
+}
+
+type Filter struct {
+	DepartmentID uint64
+	RubricID     uint64
+}
+
+type DepartmentOption struct {
+	ID   uint64
+	Name string
+}
+
+type RubricOption struct {
+	ID           uint64
+	DepartmentID uint64
+	Name         string
+	PeriodName   string
 }
 
 type Report struct {
@@ -42,5 +60,6 @@ type Report struct {
 	Aspects      []Performance
 	Stores       []Performance
 	Departments  []Performance
+	Periods      []Performance
 	Recent       []RecentResult
 }

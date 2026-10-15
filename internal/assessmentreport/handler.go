@@ -3,6 +3,7 @@ package assessmentreport
 import (
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -21,9 +22,17 @@ func NewHandler(appName string, service *Service, navigation *navigation.Service
 }
 
 func (h *Handler) Index(c *gin.Context) {
-	report, err := h.service.Report(c)
+	departmentID, _ := strconv.ParseUint(c.Query("department_id"), 10, 64)
+	rubricID, _ := strconv.ParseUint(c.Query("rubric_id"), 10, 64)
+	filter := Filter{DepartmentID: departmentID, RubricID: rubricID}
+	report, err := h.service.ReportWithFilter(c, filter)
 	if err != nil {
 		slog.Error("assessment report", "error", err)
+		c.Redirect(http.StatusSeeOther, "/errors/500")
+		return
+	}
+	departments, rubrics, err := h.service.FilterOptions(c)
+	if err != nil {
 		c.Redirect(http.StatusSeeOther, "/errors/500")
 		return
 	}
@@ -42,7 +51,8 @@ func (h *Handler) Index(c *gin.Context) {
 		"AppName": h.appName, "Authenticated": true, "IsDashboard": true,
 		"Title": "Laporan Penilaian Trainee", "Section": "Laporan", "ActivePage": "trainee-assessment-reports",
 		"UserName": user.Name, "UserInitials": reportInitials(user.Name), "StoreName": user.StoreName, "RoleName": user.RoleName,
-		"CSRFToken": token, "Menus": menus, "Report": report,
+		"CSRFToken": token, "Menus": menus, "Report": report, "Filter": filter,
+		"Departments": departments, "Rubrics": rubrics,
 	})
 }
 
