@@ -15,6 +15,7 @@ type AssessmentDetail struct {
 	Score                            int
 }
 type Trainee struct {
+	DepartmentID                                                  uint64
 	EmployeeID, AssignmentID, StoreID                             uint64
 	EmployeeNumber, Name, PositionName, DepartmentName, StoreName string
 }
@@ -24,11 +25,13 @@ type Rule struct {
 	FindingLabel string
 }
 type Criterion struct {
-	ID, AspectID            uint64
-	AspectName, Description string
-	Weight                  float64
-	Score                   int
-	Rules                   []Rule
+	RubricID, DepartmentID, MonthFrom, MonthTo uint64
+	RubricName                                 string
+	ID, AspectID                               uint64
+	AspectName, Description                    string
+	Weight                                     float64
+	Score                                      int
+	Rules                                      []Rule
 }
 type Aspect struct {
 	ID       uint64
@@ -46,6 +49,7 @@ type DetailInput struct {
 	Score       int
 }
 type Input struct {
+	RubricID, DepartmentID           uint64
 	TraineeEmployeeID, TrainingMonth uint64
 	AssessmentDate, Notes, Status    string
 	Details                          []DetailInput

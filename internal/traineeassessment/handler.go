@@ -52,6 +52,10 @@ func (h *Handler) form(c *gin.Context, id uint64) {
 	uid, _ := strconv.ParseUint(u.ID, 10, 64)
 	f, e := h.service.Form(c, id, uid, u.RoleName)
 	if e != nil {
+		if errors.Is(e, ErrFinal) {
+			h.redirect(c, "error", "final")
+			return
+		}
 		h.fail(c, e)
 		return
 	}
@@ -153,6 +157,8 @@ func (h *Handler) result(c *gin.Context, e error, success string) {
 		code = "duplicate"
 	case errors.Is(e, ErrFinal):
 		code = "final"
+	case errors.Is(e, ErrNoRubric):
+		code = "no-rubric"
 	case errors.Is(e, sql.ErrNoRows):
 		code = "not-found"
 	default:
@@ -179,5 +185,8 @@ func initials(n string) string {
 	return v
 }
 func msg(c string) string {
+	if c == "no-rubric" {
+		return "Rubrik bagian dan bulan ini belum tersedia, belum lengkap, atau periodenya bertumpang tindih. Hubungi pengelola master penilaian."
+	}
 	return map[string]string{"created": "Penilaian berhasil disimpan.", "updated": "Penilaian berhasil diperbarui.", "deleted": "Draft penilaian berhasil dihapus.", "invalid": "Lengkapi data, semua nilai, dan catatan sebelum diajukan.", "duplicate": "Trainee tersebut sudah dinilai pada bulan pelatihan yang sama.", "final": "Penilaian yang sudah diajukan tidak dapat diubah.", "not-found": "Penilaian tidak ditemukan atau tidak dapat diakses.", "failed": "Operasi penilaian gagal diproses."}[c]
 }

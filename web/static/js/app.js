@@ -244,6 +244,7 @@ document.querySelectorAll("[data-edit-criterion]").forEach((button) => {
     const form = document.getElementById("editCriterionForm");
     if (!dialog || !form) return;
     form.action = `/master/assessment-criteria/${button.dataset.id}/update`;
+    form.elements.department_id.value = button.dataset.departmentId ?? "";
     form.elements.aspect_id.value = button.dataset.aspectId ?? "";
     form.elements.code.value = button.dataset.code ?? "";
     form.elements.description.value = button.dataset.description ?? "";
@@ -255,13 +256,15 @@ document.querySelectorAll("[data-edit-criterion]").forEach((button) => {
 
 function filterRuleCriteria(form, aspectId, selectedCriterion = "") {
   const criterion = form?.querySelector("[data-rule-criterion]");
+	const rubric = form?.querySelector("[data-rule-rubric]");
+	const departmentId = rubric?.selectedOptions[0]?.dataset.departmentId ?? "";
   if (!criterion) return;
-  const available = Boolean(aspectId);
+	const available = Boolean(aspectId && departmentId);
   criterion.disabled = !available;
   const placeholder = criterion.options[0];
   if (placeholder) placeholder.textContent = available ? "Pilih subaspek" : "Pilih aspek terlebih dahulu";
   [...criterion.options].slice(1).forEach((option) => {
-    const visible = option.dataset.aspectId === String(aspectId);
+		const visible = option.dataset.aspectId === String(aspectId) && option.dataset.departmentId === departmentId;
     option.hidden = !visible;
     option.disabled = !visible;
   });
@@ -271,7 +274,9 @@ function filterRuleCriteria(form, aspectId, selectedCriterion = "") {
 
 document.querySelectorAll("[data-rule-form]").forEach((form) => {
   const aspect = form.querySelector("[data-rule-aspect]");
+	const rubric = form.querySelector("[data-rule-rubric]");
   aspect?.addEventListener("change", () => filterRuleCriteria(form, aspect.value));
+	rubric?.addEventListener("change", () => filterRuleCriteria(form, aspect?.value ?? ""));
   filterRuleCriteria(form, aspect?.value ?? "");
 });
 
@@ -280,7 +285,8 @@ document.querySelectorAll("[data-edit-rule]").forEach((button) => {
     const dialog = document.getElementById("editRuleDialog");
     const form = document.getElementById("editRuleForm");
     if (!dialog || !form) return;
-    form.action = `/master/assessment-score-rules/${button.dataset.criterionId}/${button.dataset.score}/update`;
+		form.action = `/master/assessment-score-rules/${button.dataset.rubricId}/${button.dataset.criterionId}/${button.dataset.score}/update`;
+		form.elements.rubric_id.value = button.dataset.rubricId ?? "";
     const criterionID = button.dataset.criterionId ?? "";
     const criterionOption = [...form.elements.criterion_id.options].find((option) => option.value === criterionID);
     const aspect = form.querySelector("[data-rule-aspect]");
@@ -490,33 +496,32 @@ if (assessmentForm) {
 
   const updateTraineeSummary = () => {
     const option = trainee?.selectedOptions[0];
-    const traineeSelected = Boolean(trainee?.value);
     const values = { number: "number", position: "position", department: "department", store: "store" };
     Object.entries(values).forEach(([target, data]) => {
       const element = assessmentForm.querySelector(`[data-trainee-${target}]`);
       if (element) element.textContent = option?.dataset[data] || "—";
-    });
-    assessmentForm.querySelectorAll('input[type="radio"][name^="score_"]').forEach((input) => {
-      input.disabled = !traineeSelected;
     });
   };
   trainee?.addEventListener("change", updateTraineeSummary);
   updateTraineeSummary();
 
   const updateAssessmentTotal = () => {
-    const groups = [...new Set([...assessmentForm.querySelectorAll('input[type="radio"][name^="score_"]')].map((input) => input.name))];
+    const groups = [...new Set([...assessmentForm.querySelectorAll('input[type="radio"][name^="score_"]:enabled')].map((input) => input.name))];
     let total = 0;
+    let totalWeight = 0;
     let filled = 0;
     groups.forEach((name) => {
       const selected = assessmentForm.querySelector(`input[type="radio"][name="${name}"]:checked`);
       if (!selected) return;
-      total += Number(selected.value);
+      const criterionWeight = Number(selected.closest('[data-rubric-row]').dataset.weight);
+      total += Number(selected.value) * criterionWeight;
+      totalWeight += criterionWeight;
       filled += 1;
       const criterionID = name.replace("score_", "");
       const description = assessmentForm.querySelector(`[data-score-description="${criterionID}"]`);
       if (description) description.textContent = selected.dataset.ruleDescription || "";
     });
-    const average = filled ? total / filled : 0;
+    const average = filled === groups.length && totalWeight ? Math.round(total / totalWeight * 100) / 100 : 0;
     const rating = average <= 0 ? "Belum lengkap" : average <= 1.8 ? "Sangat Kurang Sekali" : average <= 2.6 ? "Kurang Sekali" : average <= 3.4 ? "Kurang" : average <= 4.2 ? "Mendekati Standar" : "Sesuai Standar";
     const weight = assessmentForm.querySelector("[data-assessment-weight]");
     const averageElement = assessmentForm.querySelector("[data-assessment-average]");
@@ -526,12 +531,36 @@ if (assessmentForm) {
     if (ratingElement) ratingElement.textContent = rating;
   };
   assessmentForm.querySelectorAll('input[type="radio"][name^="score_"]').forEach((input) => input.addEventListener("change", updateAssessmentTotal));
-  updateAssessmentTotal();
+  const updateRubric = () => {
+    const department = trainee?.selectedOptions[0]?.dataset.departmentId;
+    const month = Number(assessmentForm.elements.training_month.value);
+    const rows = [...assessmentForm.querySelectorAll('[data-rubric-row]')];
+    const matches = rows.filter(row => row.dataset.departmentId === department && month >= Number(row.dataset.monthFrom) && (!Number(row.dataset.monthTo) || month <= Number(row.dataset.monthTo)));
+    const rubrics = new Set(matches.map(row => row.dataset.rubricId));
+    const complete = matches.length > 0 && matches.every(row => row.querySelectorAll('input[type="radio"]').length === 5);
+    const valid = rubrics.size === 1 && complete && month >= 1 && month <= 24;
+    rows.forEach(row => {
+      const visible = valid && matches.includes(row);
+      row.hidden = !visible;
+      row.querySelectorAll('input').forEach(input => {
+        input.disabled = !visible;
+        if (!visible && input.type === 'radio') input.checked = false;
+      });
+      if (visible) row.cells[0].textContent = String(matches.indexOf(row) + 1);
+    });
+    const message = assessmentForm.querySelector('[data-rubric-message]');
+    if (message) message.textContent = !trainee?.value ? 'Pilih trainee dan bulan pelatihan untuk menampilkan rubrik.' : valid ? matches[0].dataset.rubricName : 'Rubrik bagian dan bulan ini belum tersedia atau belum lengkap. Hubungi pengelola master penilaian.';
+    assessmentForm.querySelector('[data-submit-final]').disabled = !valid;
+    updateAssessmentTotal();
+  };
+  trainee?.addEventListener('change', updateRubric);
+  assessmentForm.elements.training_month.addEventListener('input', updateRubric);
+  updateRubric();
 
   assessmentForm.querySelector("[data-submit-final]")?.addEventListener("click", (event) => {
-    const total = assessmentForm.querySelectorAll('input[type="radio"][name^="score_"]:checked').length;
-    const expected = new Set([...assessmentForm.querySelectorAll('input[type="radio"][name^="score_"]')].map((input) => input.name)).size;
-    if (total !== expected || !assessmentForm.elements.notes.value.trim()) {
+    const total = assessmentForm.querySelectorAll('input[type="radio"][name^="score_"]:enabled:checked').length;
+    const expected = new Set([...assessmentForm.querySelectorAll('input[type="radio"][name^="score_"]:enabled')].map((input) => input.name)).size;
+    if (!expected || total !== expected || !assessmentForm.elements.notes.value.trim()) {
       event.preventDefault();
       showDashboardToast("Lengkapi semua nilai dan catatan sebelum diajukan.");
     }
@@ -591,6 +620,8 @@ document.querySelectorAll("[data-access-filter]").forEach((filter) => {
 
   const search = filter.querySelector("[data-filter-search]");
   const guard = filter.querySelector("[data-filter-guard]");
+  const extra = filter.querySelector("[data-filter-extra]");
+  const department = filter.querySelector("[data-filter-department]");
   const count = filter.querySelector("[data-filter-count]");
   const rows = [...table.querySelectorAll("[data-filter-row]")];
   const empty = table.querySelector("[data-filter-empty]");
@@ -654,10 +685,14 @@ document.querySelectorAll("[data-access-filter]").forEach((filter) => {
     if (resetPage) currentPage = 1;
     const query = search?.value.trim().toLowerCase() ?? "";
     const selectedGuard = guard?.value ?? "";
+    const selectedExtra = extra?.value ?? "";
+    const selectedDepartment = department?.value ?? "";
     const filteredRows = rows.filter((row) => {
       const matchesSearch = (row.dataset.filterSearch ?? "").toLowerCase().includes(query);
       const matchesGuard = !selectedGuard || row.dataset.filterGuard === selectedGuard;
-      return matchesSearch && matchesGuard;
+      const matchesExtra = !selectedExtra || row.dataset.filterExtra === selectedExtra;
+      const matchesDepartment = !selectedDepartment || row.dataset.filterDepartment === selectedDepartment;
+      return matchesSearch && matchesGuard && matchesExtra && matchesDepartment;
     });
     const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
     currentPage = Math.min(currentPage, totalPages);
@@ -676,6 +711,8 @@ document.querySelectorAll("[data-access-filter]").forEach((filter) => {
 
   search?.addEventListener("input", () => applyAccessFilter(true));
   guard?.addEventListener("change", () => applyAccessFilter(true));
+  extra?.addEventListener("change", () => applyAccessFilter(true));
+  department?.addEventListener("change", () => applyAccessFilter(true));
   applyAccessFilter();
 });
 

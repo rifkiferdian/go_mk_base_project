@@ -1,16 +1,20 @@
 package assessmentcriterion
 
 type Criterion struct {
-	ID              uint64
-	AspectID        uint64
-	AspectCode      string
-	AspectName      string
-	Code            string
-	Description     string
-	Weight          float64
-	SortOrder       uint16
-	RuleCount       int
-	AssessmentCount int
+	DepartmentID      uint64
+	DepartmentName    string
+	MonthLabel        string
+	ID                uint64
+	AspectID          uint64
+	AspectCode        string
+	AspectName        string
+	Code              string
+	Description       string
+	Weight            float64
+	SortOrder         uint16
+	RuleCount         int
+	ExpectedRuleCount int
+	AssessmentCount   int
 }
 
 type AspectOption struct {
@@ -18,10 +22,18 @@ type AspectOption struct {
 	Name string
 }
 
+type RubricOption struct {
+	ID             uint64
+	DepartmentName string
+	Name           string
+	MonthLabel     string
+}
+
 type Input struct {
-	AspectID    uint64
-	Code        string
-	Description string
-	Weight      float64
-	SortOrder   uint16
+	DepartmentID uint64
+	AspectID     uint64
+	Code         string
+	Description  string
+	Weight       float64
+	SortOrder    uint16
 }

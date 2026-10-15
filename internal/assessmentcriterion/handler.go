@@ -36,17 +36,27 @@ func (h *Handler) Index(c *gin.Context) {
 		return
 	}
 	configured, used := 0, 0
+	rubrics, err := h.service.Rubrics(c.Request.Context())
+	if err != nil {
+		h.internalError(c, err)
+		return
+	}
+	departments, err := h.service.Departments(c.Request.Context())
+	if err != nil {
+		h.internalError(c, err)
+		return
+	}
 	totalWeight := 0.0
 	for _, item := range criteria {
 		totalWeight += item.Weight
-		if item.RuleCount == 5 {
+		if item.ExpectedRuleCount > 0 && item.RuleCount == item.ExpectedRuleCount {
 			configured++
 		}
 		if item.AssessmentCount > 0 {
 			used++
 		}
 	}
-	h.render(c, http.StatusOK, gin.H{"Title": "Subaspek Penilaian", "ActivePage": "assessment-criteria", "Criteria": criteria, "Aspects": aspects, "CriterionCount": len(criteria), "ConfiguredCount": configured, "UsedCount": used, "TotalWeight": totalWeight})
+	h.render(c, http.StatusOK, gin.H{"Title": "Subaspek Penilaian", "ActivePage": "assessment-criteria", "Criteria": criteria, "Aspects": aspects, "Departments": departments, "Rubrics": rubrics, "CriterionCount": len(criteria), "ConfiguredCount": configured, "UsedCount": used, "RubricCount": len(rubrics), "TotalWeight": totalWeight})
 }
 func (h *Handler) Create(c *gin.Context) {
 	if !auth.ValidCSRF(c, c.PostForm("csrf_token")) {
@@ -90,13 +100,17 @@ func (h *Handler) Delete(c *gin.Context) {
 	h.redirectResult(c, h.service.Delete(c.Request.Context(), id), "criterion-deleted")
 }
 func formInput(c *gin.Context) (Input, bool) {
+	departmentID, departmentErr := strconv.ParseUint(c.PostForm("department_id"), 10, 64)
+	if departmentErr != nil || departmentID == 0 {
+		return Input{}, false
+	}
 	aspectID, e1 := strconv.ParseUint(c.PostForm("aspect_id"), 10, 64)
 	weight, e2 := strconv.ParseFloat(c.PostForm("weight"), 64)
 	order, e3 := strconv.ParseUint(c.PostForm("sort_order"), 10, 16)
 	if e1 != nil || e2 != nil || e3 != nil || aspectID == 0 || order == 0 {
 		return Input{}, false
 	}
-	return Input{AspectID: aspectID, Code: c.PostForm("code"), Description: c.PostForm("description"), Weight: weight, SortOrder: uint16(order)}, true
+	return Input{DepartmentID: departmentID, AspectID: aspectID, Code: c.PostForm("code"), Description: c.PostForm("description"), Weight: weight, SortOrder: uint16(order)}, true
 }
 func routeID(c *gin.Context) (uint64, bool) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)

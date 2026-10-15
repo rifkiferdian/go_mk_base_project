@@ -24,6 +24,7 @@
 
 # File unggahan runtime.
 /storage/uploads/*
+/storage/backups/
 !/storage/uploads/.gitkeep
 # Log aplikasi dan tooling.
 *.log

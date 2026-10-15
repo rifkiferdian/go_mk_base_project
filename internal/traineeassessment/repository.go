@@ -35,7 +35,7 @@ func (r *Repository) Assessments(ctx context.Context, userID uint64, all bool) (
 	return out, rows.Err()
 }
 func (r *Repository) Trainees(ctx context.Context, userID uint64, all bool) ([]Trainee, error) {
-	q := `SELECT e.id,a.id,a.store_id,e.employee_number,e.name,p.name,d.name,s.name FROM employees e JOIN employee_profiles ep ON ep.employee_id=e.id AND ep.employment_status='trainee' JOIN employee_assignments a ON a.employee_id=e.id AND a.ended_at IS NULL JOIN positions p ON p.id=a.position_id JOIN departments d ON d.id=a.department_id JOIN stores s ON s.id=a.store_id`
+	q := `SELECT e.id,a.id,a.store_id,e.employee_number,e.name,p.name,d.name,s.name,d.id FROM employees e JOIN employee_profiles ep ON ep.employee_id=e.id AND ep.employment_status='trainee' JOIN employee_assignments a ON a.employee_id=e.id AND a.ended_at IS NULL JOIN positions p ON p.id=a.position_id JOIN departments d ON d.id=a.department_id JOIN stores s ON s.id=a.store_id`
 	args := []any{}
 	if !all {
 		q += ` JOIN users au ON au.id=? JOIN employee_assignments sa ON sa.employee_id=au.employee_id AND sa.ended_at IS NULL JOIN employee_reporting_lines rl ON rl.employee_assignment_id=a.id AND rl.supervisor_assignment_id=sa.id AND rl.ended_at IS NULL`
@@ -50,7 +50,7 @@ func (r *Repository) Trainees(ctx context.Context, userID uint64, all bool) ([]T
 	var out []Trainee
 	for rows.Next() {
 		var x Trainee
-		if e = rows.Scan(&x.EmployeeID, &x.AssignmentID, &x.StoreID, &x.EmployeeNumber, &x.Name, &x.PositionName, &x.DepartmentName, &x.StoreName); e != nil {
+		if e = rows.Scan(&x.EmployeeID, &x.AssignmentID, &x.StoreID, &x.EmployeeNumber, &x.Name, &x.PositionName, &x.DepartmentName, &x.StoreName, &x.DepartmentID); e != nil {
 			return nil, e
 		}
 		out = append(out, x)
@@ -58,7 +58,7 @@ func (r *Repository) Trainees(ctx context.Context, userID uint64, all bool) ([]T
 	return out, rows.Err()
 }
 func (r *Repository) Rubric(ctx context.Context) ([]Aspect, error) {
-	rows, e := r.db.QueryContext(ctx, `SELECT a.id,a.name,c.id,c.description,c.weight,r.score,r.finding_min,r.finding_max,r.description FROM trainee_assessment_aspects a JOIN trainee_assessment_criteria c ON c.aspect_id=a.id LEFT JOIN trainee_assessment_score_rules r ON r.criterion_id=c.id ORDER BY a.sort_order,c.sort_order,r.score DESC`)
+	rows, e := r.db.QueryContext(ctx, `SELECT a.id,a.name,c.id,c.description,c.weight,COALESCE(r.score,0),COALESCE(r.finding_min,0),r.finding_max,COALESCE(r.description,''),b.id,b.department_id,b.month_from,COALESCE(b.month_to,0),b.name FROM trainee_assessment_aspects a JOIN trainee_assessment_criteria c ON c.aspect_id=a.id JOIN trainee_assessment_rubrics b ON b.department_id=c.department_id AND b.is_active=1 LEFT JOIN trainee_assessment_score_rules r ON r.criterion_id=c.id AND r.rubric_id=b.id ORDER BY b.department_id,b.month_from,a.sort_order,a.id,c.sort_order,c.id,r.score DESC`)
 	if e != nil {
 		return nil, e
 	}
@@ -72,7 +72,8 @@ func (r *Repository) Rubric(ctx context.Context) ([]Aspect, error) {
 		var score int
 		var min int
 		var max sql.NullInt64
-		if e = rows.Scan(&aid, &an, &cid, &desc, &weight, &score, &min, &max, &rd); e != nil {
+		var meta Criterion
+		if e = rows.Scan(&aid, &an, &cid, &desc, &weight, &score, &min, &max, &rd, &meta.RubricID, &meta.DepartmentID, &meta.MonthFrom, &meta.MonthTo, &meta.RubricName); e != nil {
 			return nil, e
 		}
 		if ai < 0 || out[ai].ID != aid {
@@ -81,7 +82,8 @@ func (r *Repository) Rubric(ctx context.Context) ([]Aspect, error) {
 			ci = -1
 		}
 		if ci < 0 || out[ai].Criteria[ci].ID != cid {
-			out[ai].Criteria = append(out[ai].Criteria, Criterion{ID: cid, AspectID: aid, AspectName: an, Description: desc, Weight: weight})
+			meta.ID, meta.AspectID, meta.AspectName, meta.Description, meta.Weight = cid, aid, an, desc, weight
+			out[ai].Criteria = append(out[ai].Criteria, meta)
 			ci = len(out[ai].Criteria) - 1
 		}
 		label := fmt.Sprintf("%d+ temuan", min)
@@ -92,7 +94,9 @@ func (r *Repository) Rubric(ctx context.Context) ([]Aspect, error) {
 				label = fmt.Sprintf("%d–%d temuan", min, max.Int64)
 			}
 		}
-		out[ai].Criteria[ci].Rules = append(out[ai].Criteria[ci].Rules, Rule{score, rd, label})
+		if score > 0 {
+			out[ai].Criteria[ci].Rules = append(out[ai].Criteria[ci].Rules, Rule{score, rd, label})
+		}
 	}
 	return out, rows.Err()
 }
@@ -166,6 +170,19 @@ func (r *Repository) save(ctx context.Context, id, userID uint64, assessorName s
 	if t.EmployeeID == 0 {
 		return 0, sql.ErrNoRows
 	}
+	if t.DepartmentID != input.DepartmentID || input.RubricID == 0 {
+		return 0, ErrInvalid
+	}
+	// Lock the header before updating so a concurrent request cannot rewrite a final.
+	if id != 0 {
+		var status string
+		if e = tx.QueryRowContext(ctx, `SELECT status FROM trainee_assessments WHERE id=? FOR UPDATE`, id).Scan(&status); e != nil {
+			return 0, e
+		}
+		if status == "final" {
+			return 0, ErrFinal
+		}
+	}
 	var assessorAssignment sql.NullInt64
 	var assessorPosition sql.NullString
 	_ = tx.QueryRowContext(ctx, `SELECT a.id,p.name FROM users u JOIN employee_assignments a ON a.employee_id=u.employee_id AND a.ended_at IS NULL JOIN positions p ON p.id=a.position_id WHERE u.id=?`, userID).Scan(&assessorAssignment, &assessorPosition)
@@ -197,14 +214,21 @@ func (r *Repository) save(ctx context.Context, id, userID uint64, assessorName s
 			return 0, e
 		}
 	}
+	if _, e = tx.ExecContext(ctx, `UPDATE trainee_assessments SET department_id=?,rubric_id=? WHERE id=?`, input.DepartmentID, input.RubricID, id); e != nil {
+		return 0, e
+	}
 	for _, d := range input.Details {
 		var score any
 		if d.Score > 0 {
 			score = d.Score
 		}
-		_, e = tx.ExecContext(ctx, `INSERT INTO trainee_assessment_details(assessment_id,criterion_id,aspect_name,criterion_description,weight,score) SELECT ?,c.id,a.name,c.description,c.weight,? FROM trainee_assessment_criteria c JOIN trainee_assessment_aspects a ON a.id=c.aspect_id WHERE c.id=?`, id, score, d.CriterionID)
+		res, insertErr := tx.ExecContext(ctx, `INSERT INTO trainee_assessment_details(assessment_id,criterion_id,aspect_name,criterion_description,weight,score,criterion_code,score_rule_description,finding_min,finding_max) SELECT ?,c.id,a.name,c.description,c.weight,?,c.code,s.description,s.finding_min,s.finding_max FROM trainee_assessment_criteria c JOIN trainee_assessment_aspects a ON a.id=c.aspect_id JOIN trainee_assessment_rubrics b ON b.department_id=c.department_id LEFT JOIN trainee_assessment_score_rules s ON s.criterion_id=c.id AND s.rubric_id=b.id AND s.score=? WHERE c.id=? AND b.id=? AND c.department_id=? AND b.is_active=1 AND b.month_from<=? AND (b.month_to IS NULL OR b.month_to>=?) AND (? IS NULL OR s.score IS NOT NULL)`, id, score, score, d.CriterionID, input.RubricID, input.DepartmentID, input.TrainingMonth, input.TrainingMonth, score)
+		e = insertErr
 		if e != nil {
 			return 0, e
+		}
+		if n, err := res.RowsAffected(); err != nil || n != 1 {
+			return 0, ErrInvalid
 		}
 	}
 	if e = tx.Commit(); e != nil {

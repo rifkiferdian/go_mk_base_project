@@ -27,6 +27,12 @@ func (s *Service) Criteria(ctx context.Context) ([]Criterion, error) {
 func (s *Service) Aspects(ctx context.Context) ([]AspectOption, error) {
 	return s.repository.Aspects(ctx)
 }
+func (s *Service) Rubrics(ctx context.Context) ([]RubricOption, error) {
+	return s.repository.Rubrics(ctx)
+}
+func (s *Service) Departments(ctx context.Context) ([]AspectOption, error) {
+	return s.repository.Departments(ctx)
+}
 func (s *Service) Create(ctx context.Context, input Input) error {
 	input, err := s.normalize(ctx, input)
 	if err != nil {
@@ -35,10 +41,14 @@ func (s *Service) Create(ctx context.Context, input Input) error {
 	return databaseError(s.repository.Create(ctx, input))
 }
 func (s *Service) Update(ctx context.Context, id uint64, input Input) error {
-	if _, err := s.repository.Criterion(ctx, id); err != nil {
+	item, err := s.repository.Criterion(ctx, id)
+	if err != nil {
 		return err
 	}
-	input, err := s.normalize(ctx, input)
+	if item.AssessmentCount > 0 {
+		return ErrInUse
+	}
+	input, err = s.normalize(ctx, input)
 	if err != nil {
 		return err
 	}
@@ -56,6 +66,16 @@ func (s *Service) Delete(ctx context.Context, id uint64) error {
 }
 
 func (s *Service) normalize(ctx context.Context, input Input) (Input, error) {
+	if input.DepartmentID == 0 {
+		return Input{}, ErrInvalid
+	}
+	active, err := s.repository.DepartmentExists(ctx, input.DepartmentID)
+	if err != nil {
+		return Input{}, err
+	}
+	if !active {
+		return Input{}, ErrInvalid
+	}
 	input.Code = strings.ToLower(strings.TrimSpace(input.Code))
 	input.Description = strings.TrimSpace(input.Description)
 	if input.AspectID == 0 || !codePattern.MatchString(input.Code) || input.Description == "" || utf8.RuneCountInString(input.Description) > 2000 || input.Weight <= 0 || input.Weight > 999999.99 || math.IsNaN(input.Weight) || math.IsInf(input.Weight, 0) || input.SortOrder == 0 {

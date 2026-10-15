@@ -13,6 +13,7 @@ var (
 	ErrInvalid   = errors.New("invalid assessment")
 	ErrDuplicate = errors.New("duplicate assessment")
 	ErrFinal     = errors.New("final assessment locked")
+	ErrNoRubric  = errors.New("no unique complete rubric for department and month")
 )
 
 type Service struct{ repository *Repository }
@@ -56,6 +57,9 @@ func (s *Service) Form(c context.Context, id, uid uint64, roles string) (FormDat
 	if e != nil {
 		return f, e
 	}
+	if a.Status == "final" {
+		return f, ErrFinal
+	}
 	scores, e := s.repository.DetailScores(c, id)
 	if e != nil {
 		return f, e
@@ -71,7 +75,7 @@ func (s *Service) Form(c context.Context, id, uid uint64, roles string) (FormDat
 	return f, nil
 }
 func (s *Service) Create(c context.Context, uid uint64, name, roles string, x Input) (uint64, error) {
-	if e := s.validate(c, x); e != nil {
+	if e := s.prepare(c, uid, roles, &x); e != nil {
 		return 0, e
 	}
 	return s.saveErr(s.repository.Create(c, uid, name, x, allAccess(roles)))
@@ -84,7 +88,7 @@ func (s *Service) Update(c context.Context, id, uid uint64, name, roles string, 
 	if old.Status == "final" {
 		return 0, ErrFinal
 	}
-	if e = s.validate(c, x); e != nil {
+	if e = s.prepare(c, uid, roles, &x); e != nil {
 		return 0, e
 	}
 	return s.saveErr(s.repository.Update(c, id, uid, name, x, allAccess(roles)))
@@ -104,10 +108,35 @@ func (s *Service) saveErr(id uint64, e error) (uint64, error) {
 	}
 	return id, e
 }
-func (s *Service) validate(ctx context.Context, x Input) error {
+func (s *Service) prepare(ctx context.Context, uid uint64, roles string, x *Input) error {
+	trainees, err := s.repository.Trainees(ctx, uid, allAccess(roles))
+	if err != nil {
+		return err
+	}
+	for _, t := range trainees {
+		if t.EmployeeID == x.TraineeEmployeeID {
+			x.DepartmentID = t.DepartmentID
+		}
+	}
+	if x.DepartmentID == 0 {
+		return ErrInvalid
+	}
+	return s.validate(ctx, x)
+}
+
+func (s *Service) validate(ctx context.Context, x *Input) error {
 	if x.TraineeEmployeeID == 0 || x.TrainingMonth == 0 || x.TrainingMonth > 24 || !validDate(x.AssessmentDate) || !oneOf(x.Status, "draft", "final") {
 		return ErrInvalid
 	}
+	var rubricCount int
+	var rubricID uint64
+	if err := s.repository.db.QueryRowContext(ctx, `SELECT COUNT(*),COALESCE(MIN(id),0) FROM trainee_assessment_rubrics WHERE department_id=? AND is_active=1 AND month_from<=? AND (month_to IS NULL OR month_to>=?)`, x.DepartmentID, x.TrainingMonth, x.TrainingMonth).Scan(&rubricCount, &rubricID); err != nil {
+		return err
+	}
+	if rubricCount != 1 {
+		return ErrNoRubric
+	}
+	x.RubricID = rubricID
 	aspects, err := s.repository.Rubric(ctx)
 	if err != nil {
 		return err
@@ -115,10 +144,23 @@ func (s *Service) validate(ctx context.Context, x Input) error {
 	expected := make(map[uint64]bool)
 	for _, aspect := range aspects {
 		for _, criterion := range aspect.Criteria {
+			if !criterion.appliesTo(x.DepartmentID, x.TrainingMonth) {
+				continue
+			}
+			if x.RubricID != 0 && x.RubricID != criterion.RubricID {
+				return ErrNoRubric
+			}
+			x.RubricID = criterion.RubricID
+			if len(criterion.Rules) != 5 {
+				return ErrNoRubric
+			}
 			expected[criterion.ID] = true
 		}
 	}
-	if len(x.Details) != len(expected) || len(expected) == 0 {
+	if len(expected) == 0 {
+		return ErrNoRubric
+	}
+	if len(x.Details) != len(expected) {
 		return ErrInvalid
 	}
 	filled := 0
@@ -136,6 +178,10 @@ func (s *Service) validate(ctx context.Context, x Input) error {
 		return ErrInvalid
 	}
 	return nil
+}
+
+func (c Criterion) appliesTo(departmentID, month uint64) bool {
+	return c.DepartmentID == departmentID && month >= c.MonthFrom && (c.MonthTo == 0 || month <= c.MonthTo)
 }
 func validDate(v string) bool { _, e := time.Parse("2006-01-02", v); return e == nil }
 func oneOf(v string, xs ...string) bool {

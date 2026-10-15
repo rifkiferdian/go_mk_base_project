@@ -34,11 +34,43 @@ func (h *Handler) Index(c *gin.Context) {
 		h.internalError(c, err)
 		return
 	}
+	rubrics, err := h.service.Rubrics(c.Request.Context())
+	if err != nil {
+		h.internalError(c, err)
+		return
+	}
+	groups := make([]RuleGroup, 0)
+	groupIndex := make(map[string]int)
+	for _, rule := range rules {
+		key := strconv.FormatUint(rule.RubricID, 10) + ":" + strconv.FormatUint(rule.CriterionID, 10)
+		index, found := groupIndex[key]
+		if !found {
+			var departmentID uint64
+			for _, rubric := range rubrics {
+				if rubric.ID == rule.RubricID {
+					departmentID = rubric.DepartmentID
+					break
+				}
+			}
+			groups = append(groups, RuleGroup{RubricID: rule.RubricID, CriterionID: rule.CriterionID, AspectID: rule.AspectID, DepartmentID: departmentID, DepartmentName: rule.DepartmentName, MonthLabel: rule.MonthLabel, CriterionCode: rule.CriterionCode, CriterionDescription: rule.CriterionDescription, AspectName: rule.AspectName})
+			index = len(groups) - 1
+			groupIndex[key] = index
+		}
+		groups[index].Rules = append(groups[index].Rules, rule)
+	}
 	configured := 0
+	departmentSeen := map[uint64]bool{}
+	departments := make([]AspectOption, 0)
+	for _, rubric := range rubrics {
+		if !departmentSeen[rubric.DepartmentID] {
+			departmentSeen[rubric.DepartmentID] = true
+			departments = append(departments, AspectOption{ID: rubric.DepartmentID, Name: rubric.DepartmentName})
+		}
+	}
 	aspectSeen := map[uint64]bool{}
 	aspects := make([]AspectOption, 0)
 	for _, item := range criteria {
-		if item.RuleCount == 5 {
+		if item.ExpectedRuleCount > 0 && item.RuleCount == item.ExpectedRuleCount {
 			configured++
 		}
 		if !aspectSeen[item.AspectID] {
@@ -46,7 +78,7 @@ func (h *Handler) Index(c *gin.Context) {
 			aspects = append(aspects, AspectOption{ID: item.AspectID, Name: item.AspectName})
 		}
 	}
-	h.render(c, http.StatusOK, gin.H{"Title": "Aturan Skor", "ActivePage": "assessment-score-rules", "Rules": rules, "Criteria": criteria, "RuleAspects": aspects, "RuleCount": len(rules), "CriterionCount": len(criteria), "ConfiguredCount": configured, "IncompleteCount": len(criteria) - configured, "AspectCount": len(aspects)})
+	h.render(c, http.StatusOK, gin.H{"Title": "Aturan Skor", "ActivePage": "assessment-score-rules", "Rules": rules, "RuleGroups": groups, "Criteria": criteria, "Rubrics": rubrics, "RuleDepartments": departments, "RuleAspects": aspects, "RuleCount": len(rules), "CriterionCount": len(criteria), "ConfiguredCount": configured, "IncompleteCount": len(criteria) - configured, "AspectCount": len(aspects)})
 }
 func (h *Handler) Create(c *gin.Context) {
 	if !auth.ValidCSRF(c, c.PostForm("csrf_token")) {
@@ -90,10 +122,11 @@ func (h *Handler) Delete(c *gin.Context) {
 	h.redirectResult(c, h.service.Delete(c.Request.Context(), key), "rule-deleted")
 }
 func formInput(c *gin.Context) (Input, bool) {
+	rubricID, e0 := strconv.ParseUint(c.PostForm("rubric_id"), 10, 64)
 	criterionID, e1 := strconv.ParseUint(c.PostForm("criterion_id"), 10, 64)
 	score, e2 := strconv.ParseUint(c.PostForm("score"), 10, 8)
 	minimum, e3 := strconv.ParseUint(c.PostForm("finding_min"), 10, 16)
-	if e1 != nil || e2 != nil || e3 != nil {
+	if e0 != nil || e1 != nil || e2 != nil || e3 != nil {
 		return Input{}, false
 	}
 	var maximum *uint16
@@ -105,12 +138,13 @@ func formInput(c *gin.Context) (Input, bool) {
 		parsed := uint16(value)
 		maximum = &parsed
 	}
-	return Input{CriterionID: criterionID, Score: uint8(score), FindingMin: uint16(minimum), FindingMax: maximum, Description: c.PostForm("description")}, true
+	return Input{RubricID: rubricID, CriterionID: criterionID, Score: uint8(score), FindingMin: uint16(minimum), FindingMax: maximum, Description: c.PostForm("description")}, true
 }
 func routeKey(c *gin.Context) (Key, bool) {
+	rubricID, e0 := strconv.ParseUint(c.Param("rubricID"), 10, 64)
 	criterionID, e1 := strconv.ParseUint(c.Param("criterionID"), 10, 64)
 	score, e2 := strconv.ParseUint(c.Param("score"), 10, 8)
-	return Key{CriterionID: criterionID, Score: uint8(score)}, e1 == nil && e2 == nil && criterionID > 0 && score >= 1 && score <= 5
+	return Key{RubricID: rubricID, CriterionID: criterionID, Score: uint8(score)}, e0 == nil && e1 == nil && e2 == nil && rubricID > 0 && criterionID > 0 && score >= 1 && score <= 5
 }
 func (h *Handler) render(c *gin.Context, status int, data gin.H) {
 	current, _ := auth.CurrentUser(c)
