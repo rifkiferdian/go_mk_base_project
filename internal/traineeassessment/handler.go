@@ -109,7 +109,8 @@ func input(c *gin.Context) (Input, bool) {
 		if !strings.HasPrefix(k, "score_") {
 			continue
 		}
-		cid, e := strconv.ParseUint(strings.TrimPrefix(k, "score_"), 10, 64)
+		keyParts := strings.Split(strings.TrimPrefix(k, "score_"), "_")
+		cid, e := strconv.ParseUint(keyParts[0], 10, 64)
 		if e != nil {
 			continue
 		}

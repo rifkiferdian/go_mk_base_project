@@ -5,16 +5,39 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
+	"strings"
 	"testing"
 
+	"github.com/gin-gonic/gin"
 	"github.com/go-sql-driver/mysql"
 	"github.com/joho/godotenv"
 	"mksiaga/internal/assessmentcriterion"
 	"mksiaga/internal/assessmentrule"
 	"mksiaga/internal/view"
 )
+
+func TestAssessmentInputUsesCriterionFromPeriodScopedField(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	values := url.Values{
+		"trainee_employee_id": {"9"},
+		"training_month":      {"3"},
+		"assessment_date":     {"2026-10-15"},
+		"notes":               {"Catatan"},
+		"score_41_2":          {"0", "4"},
+	}
+	request := httptest.NewRequest(http.MethodPost, "/assessments", strings.NewReader(values.Encode()))
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	context, _ := gin.CreateTestContext(httptest.NewRecorder())
+	context.Request = request
+	got, ok := input(context)
+	if !ok || len(got.Details) != 1 || got.Details[0].CriterionID != 41 || got.Details[0].Score != 4 {
+		t.Fatalf("unexpected parsed input: ok=%v input=%+v", ok, got)
+	}
+}
 
 func TestCriterionPeriodBoundaries(t *testing.T) {
 	periods := []Criterion{{DepartmentID: 2, MonthFrom: 1, MonthTo: 2}, {DepartmentID: 2, MonthFrom: 3, MonthTo: 4}, {DepartmentID: 2, MonthFrom: 5}}

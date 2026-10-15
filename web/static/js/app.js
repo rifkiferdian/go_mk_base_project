@@ -517,8 +517,8 @@ if (assessmentForm) {
       total += Number(selected.value) * criterionWeight;
       totalWeight += criterionWeight;
       filled += 1;
-      const criterionID = name.replace("score_", "");
-      const description = assessmentForm.querySelector(`[data-score-description="${criterionID}"]`);
+			const criterionKey = name.replace("score_", "");
+			const description = assessmentForm.querySelector(`[data-score-description="${criterionKey}"]`);
       if (description) description.textContent = selected.dataset.ruleDescription || "";
     });
     const average = filled === groups.length && totalWeight ? Math.round(total / totalWeight * 100) / 100 : 0;
@@ -549,7 +549,7 @@ if (assessmentForm) {
       if (visible) row.cells[0].textContent = String(matches.indexOf(row) + 1);
     });
     const message = assessmentForm.querySelector('[data-rubric-message]');
-    if (message) message.textContent = !trainee?.value ? 'Pilih trainee dan bulan pelatihan untuk menampilkan rubrik.' : valid ? matches[0].dataset.rubricName : 'Rubrik bagian dan bulan ini belum tersedia atau belum lengkap. Hubungi pengelola master penilaian.';
+		if (message) message.textContent = !trainee?.value ? 'Pilih trainee dan bulan pelatihan untuk menampilkan rubrik.' : valid ? `Rubrik aktif: ${matches[0].dataset.rubricName}` : 'Rubrik bagian dan bulan ini belum tersedia atau belum lengkap. Hubungi pengelola master penilaian.';
     assessmentForm.querySelector('[data-submit-final]').disabled = !valid;
     updateAssessmentTotal();
   };
