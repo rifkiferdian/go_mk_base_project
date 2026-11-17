@@ -1,0 +1,2 @@
+ALTER TABLE employee_profiles DROP CHECK employee_profile_employment_period_check;
+ALTER TABLE employee_profiles DROP COLUMN employment_ended_at;

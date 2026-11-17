@@ -6,15 +6,16 @@ type Employee struct {
 	ID                                                        uint64
 	EmployeeNumber, Name, Email, Phone, Status                string
 	EmploymentStatus, PositionName, DepartmentName, StoreName string
+	AssignmentStartedAt, AssignmentEndedAt                    string
 	HasProfile, HasCurrentAssignment, HasUser                 bool
 	AssignmentCount, SubordinateCount                         int
 }
 
 type Profile struct {
-	EmployeeID                                                                           uint64
-	EmployeeNumber, EmployeeName                                                         string
-	BirthPlace, BirthDate, Gender, Address, JoinedDate, EmploymentStatus                 string
-	PhotoPath, EmergencyContactName, EmergencyContactPhone, EmergencyContactRelationship string
+	EmployeeID                                                                              uint64
+	EmployeeNumber, EmployeeName                                                            string
+	BirthPlace, BirthDate, Gender, Address, JoinedDate, EmploymentEndedAt, EmploymentStatus string
+	PhotoPath, EmergencyContactName, EmergencyContactPhone, EmergencyContactRelationship    string
 }
 
 type Assignment struct {
@@ -40,9 +41,9 @@ type Option struct {
 
 type EmployeeInput struct{ EmployeeNumber, Name, Email, Phone, Status string }
 type ProfileInput struct {
-	EmployeeID                                                                           uint64
-	BirthPlace, BirthDate, Gender, Address, JoinedDate, EmploymentStatus                 string
-	PhotoPath, EmergencyContactName, EmergencyContactPhone, EmergencyContactRelationship string
+	EmployeeID                                                                              uint64
+	BirthPlace, BirthDate, Gender, Address, JoinedDate, EmploymentEndedAt, EmploymentStatus string
+	PhotoPath, EmergencyContactName, EmergencyContactPhone, EmergencyContactRelationship    string
 }
 type AssignmentInput struct {
 	EmployeeID, PositionID, DepartmentID, StoreID uint64

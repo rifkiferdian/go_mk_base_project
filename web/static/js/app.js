@@ -346,7 +346,7 @@ document.querySelectorAll("[data-edit-profile]").forEach((button) => {
     const form = document.getElementById("editProfileForm");
     if (!dialog || !form) return;
     form.action = `/master/employee-profiles/${button.dataset.id}/update`;
-    const values = { birth_place: "birthPlace", birth_date: "birthDate", gender: "gender", address: "address", joined_date: "joinedDate", employment_status: "employmentStatus", photo_path: "photoPath", emergency_contact_name: "emergencyName", emergency_contact_phone: "emergencyPhone", emergency_contact_relationship: "emergencyRelationship" };
+    const values = { birth_place: "birthPlace", birth_date: "birthDate", gender: "gender", address: "address", joined_date: "joinedDate", employment_ended_at: "employmentEndedAt", employment_status: "employmentStatus", photo_path: "photoPath", emergency_contact_name: "emergencyName", emergency_contact_phone: "emergencyPhone", emergency_contact_relationship: "emergencyRelationship" };
     Object.entries(values).forEach(([field, data]) => { form.elements[field].value = button.dataset[data] ?? ""; });
     dialog.showModal();
   });
@@ -358,7 +358,7 @@ document.querySelectorAll("[data-edit-assignment]").forEach((button) => {
     const form = document.getElementById("editAssignmentForm");
     if (!dialog || !form) return;
     form.action = `/master/employee-assignments/${button.dataset.id}/update`;
-    const values = { employee_id: "employeeId", position_id: "positionId", department_id: "departmentId", store_id: "storeId", started_at: "startedAt", ended_at: "endedAt" };
+    const values = { employee_id: "employeeId", position_id: "positionId", department_id: "departmentId", store_id: "storeId", started_at: "startedAt" };
     Object.entries(values).forEach(([field, data]) => { form.elements[field].value = button.dataset[data] ?? ""; });
     dialog.showModal();
   });

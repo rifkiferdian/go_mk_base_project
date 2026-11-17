@@ -124,7 +124,7 @@ func profileInput(c *gin.Context) (ProfileInput, bool) {
 	if e != nil && c.PostForm("employee_id") != "" {
 		return ProfileInput{}, false
 	}
-	return ProfileInput{EmployeeID: v, BirthPlace: c.PostForm("birth_place"), BirthDate: c.PostForm("birth_date"), Gender: c.PostForm("gender"), Address: c.PostForm("address"), JoinedDate: c.PostForm("joined_date"), EmploymentStatus: c.PostForm("employment_status"), PhotoPath: c.PostForm("photo_path"), EmergencyContactName: c.PostForm("emergency_contact_name"), EmergencyContactPhone: c.PostForm("emergency_contact_phone"), EmergencyContactRelationship: c.PostForm("emergency_contact_relationship")}, true
+	return ProfileInput{EmployeeID: v, BirthPlace: c.PostForm("birth_place"), BirthDate: c.PostForm("birth_date"), Gender: c.PostForm("gender"), Address: c.PostForm("address"), JoinedDate: c.PostForm("joined_date"), EmploymentEndedAt: c.PostForm("employment_ended_at"), EmploymentStatus: c.PostForm("employment_status"), PhotoPath: c.PostForm("photo_path"), EmergencyContactName: c.PostForm("emergency_contact_name"), EmergencyContactPhone: c.PostForm("emergency_contact_phone"), EmergencyContactRelationship: c.PostForm("emergency_contact_relationship")}, true
 }
 
 func (h *Handler) Assignments(c *gin.Context) {
@@ -188,7 +188,7 @@ func assignmentInput(c *gin.Context) (AssignmentInput, bool) {
 		}
 		vals[i] = v
 	}
-	return AssignmentInput{vals[0], vals[1], vals[2], vals[3], c.PostForm("started_at"), c.PostForm("ended_at")}, true
+	return AssignmentInput{EmployeeID: vals[0], PositionID: vals[1], DepartmentID: vals[2], StoreID: vals[3], StartedAt: c.PostForm("started_at")}, true
 }
 
 func (h *Handler) ReportingLines(c *gin.Context) {

@@ -13,7 +13,7 @@ func NewRepository(db *sql.DB) *Repository { return &Repository{db: db} }
 
 func (r *Repository) Employees(ctx context.Context) ([]Employee, error) {
 	rows, err := r.db.QueryContext(ctx, `SELECT e.id,e.employee_number,e.name,COALESCE(e.email,''),COALESCE(e.phone,''),e.status,
-	 COALESCE(ep.employment_status,''),COALESCE(p.name,''),COALESCE(d.name,''),COALESCE(s.name,''),ep.employee_id IS NOT NULL,a.id IS NOT NULL,u.id IS NOT NULL,
+	 COALESCE(ep.employment_status,''),COALESCE(p.name,''),COALESCE(d.name,''),COALESCE(s.name,''),COALESCE(DATE_FORMAT(a.started_at,'%Y-%m-%d'),''),COALESCE(DATE_FORMAT(a.ended_at,'%Y-%m-%d'),''),ep.employee_id IS NOT NULL,a.id IS NOT NULL,u.id IS NOT NULL,
 	 (SELECT COUNT(*) FROM employee_assignments ah WHERE ah.employee_id=e.id),
 	 (SELECT COUNT(*) FROM employee_reporting_lines rl JOIN employee_assignments sa ON sa.id=rl.supervisor_assignment_id WHERE sa.employee_id=e.id AND rl.ended_at IS NULL)
 	 FROM employees e LEFT JOIN employee_profiles ep ON ep.employee_id=e.id LEFT JOIN employee_assignments a ON a.employee_id=e.id AND a.ended_at IS NULL
@@ -25,7 +25,7 @@ func (r *Repository) Employees(ctx context.Context) ([]Employee, error) {
 	var result []Employee
 	for rows.Next() {
 		var x Employee
-		if err := rows.Scan(&x.ID, &x.EmployeeNumber, &x.Name, &x.Email, &x.Phone, &x.Status, &x.EmploymentStatus, &x.PositionName, &x.DepartmentName, &x.StoreName, &x.HasProfile, &x.HasCurrentAssignment, &x.HasUser, &x.AssignmentCount, &x.SubordinateCount); err != nil {
+		if err := rows.Scan(&x.ID, &x.EmployeeNumber, &x.Name, &x.Email, &x.Phone, &x.Status, &x.EmploymentStatus, &x.PositionName, &x.DepartmentName, &x.StoreName, &x.AssignmentStartedAt, &x.AssignmentEndedAt, &x.HasProfile, &x.HasCurrentAssignment, &x.HasUser, &x.AssignmentCount, &x.SubordinateCount); err != nil {
 			return nil, err
 		}
 		result = append(result, x)
@@ -34,7 +34,7 @@ func (r *Repository) Employees(ctx context.Context) ([]Employee, error) {
 }
 func (r *Repository) Employee(ctx context.Context, id uint64) (Employee, error) {
 	var x Employee
-	err := r.db.QueryRowContext(ctx, `SELECT e.id,e.employee_number,e.name,COALESCE(e.email,''),COALESCE(e.phone,''),e.status,COALESCE(ep.employment_status,''),COALESCE(p.name,''),COALESCE(d.name,''),COALESCE(s.name,''),ep.employee_id IS NOT NULL,a.id IS NOT NULL,u.id IS NOT NULL,(SELECT COUNT(*) FROM employee_assignments ah WHERE ah.employee_id=e.id),(SELECT COUNT(*) FROM employee_reporting_lines rl JOIN employee_assignments sa ON sa.id=rl.supervisor_assignment_id WHERE sa.employee_id=e.id AND rl.ended_at IS NULL) FROM employees e LEFT JOIN employee_profiles ep ON ep.employee_id=e.id LEFT JOIN employee_assignments a ON a.employee_id=e.id AND a.ended_at IS NULL LEFT JOIN positions p ON p.id=a.position_id LEFT JOIN departments d ON d.id=a.department_id LEFT JOIN stores s ON s.id=a.store_id LEFT JOIN users u ON u.employee_id=e.id WHERE e.id=?`, id).Scan(&x.ID, &x.EmployeeNumber, &x.Name, &x.Email, &x.Phone, &x.Status, &x.EmploymentStatus, &x.PositionName, &x.DepartmentName, &x.StoreName, &x.HasProfile, &x.HasCurrentAssignment, &x.HasUser, &x.AssignmentCount, &x.SubordinateCount)
+	err := r.db.QueryRowContext(ctx, `SELECT e.id,e.employee_number,e.name,COALESCE(e.email,''),COALESCE(e.phone,''),e.status,COALESCE(ep.employment_status,''),COALESCE(p.name,''),COALESCE(d.name,''),COALESCE(s.name,''),COALESCE(DATE_FORMAT(a.started_at,'%Y-%m-%d'),''),COALESCE(DATE_FORMAT(a.ended_at,'%Y-%m-%d'),''),ep.employee_id IS NOT NULL,a.id IS NOT NULL,u.id IS NOT NULL,(SELECT COUNT(*) FROM employee_assignments ah WHERE ah.employee_id=e.id),(SELECT COUNT(*) FROM employee_reporting_lines rl JOIN employee_assignments sa ON sa.id=rl.supervisor_assignment_id WHERE sa.employee_id=e.id AND rl.ended_at IS NULL) FROM employees e LEFT JOIN employee_profiles ep ON ep.employee_id=e.id LEFT JOIN employee_assignments a ON a.employee_id=e.id AND a.ended_at IS NULL LEFT JOIN positions p ON p.id=a.position_id LEFT JOIN departments d ON d.id=a.department_id LEFT JOIN stores s ON s.id=a.store_id LEFT JOIN users u ON u.employee_id=e.id WHERE e.id=?`, id).Scan(&x.ID, &x.EmployeeNumber, &x.Name, &x.Email, &x.Phone, &x.Status, &x.EmploymentStatus, &x.PositionName, &x.DepartmentName, &x.StoreName, &x.AssignmentStartedAt, &x.AssignmentEndedAt, &x.HasProfile, &x.HasCurrentAssignment, &x.HasUser, &x.AssignmentCount, &x.SubordinateCount)
 	return x, err
 }
 func (r *Repository) CreateEmployee(ctx context.Context, x EmployeeInput) error {
@@ -51,7 +51,7 @@ func (r *Repository) DeleteEmployee(ctx context.Context, id uint64) error {
 }
 
 func (r *Repository) Profiles(ctx context.Context) ([]Profile, error) {
-	rows, e := r.db.QueryContext(ctx, `SELECT ep.employee_id,e.employee_number,e.name,COALESCE(ep.birth_place,''),COALESCE(DATE_FORMAT(ep.birth_date,'%Y-%m-%d'),''),COALESCE(ep.gender,''),COALESCE(ep.address,''),COALESCE(DATE_FORMAT(ep.joined_date,'%Y-%m-%d'),''),ep.employment_status,COALESCE(ep.photo_path,''),COALESCE(ep.emergency_contact_name,''),COALESCE(ep.emergency_contact_phone,''),COALESCE(ep.emergency_contact_relationship,'') FROM employee_profiles ep JOIN employees e ON e.id=ep.employee_id ORDER BY e.name`)
+	rows, e := r.db.QueryContext(ctx, `SELECT ep.employee_id,e.employee_number,e.name,COALESCE(ep.birth_place,''),COALESCE(DATE_FORMAT(ep.birth_date,'%Y-%m-%d'),''),COALESCE(ep.gender,''),COALESCE(ep.address,''),COALESCE(DATE_FORMAT(ep.joined_date,'%Y-%m-%d'),''),COALESCE(DATE_FORMAT(ep.employment_ended_at,'%Y-%m-%d'),''),ep.employment_status,COALESCE(ep.photo_path,''),COALESCE(ep.emergency_contact_name,''),COALESCE(ep.emergency_contact_phone,''),COALESCE(ep.emergency_contact_relationship,'') FROM employee_profiles ep JOIN employees e ON e.id=ep.employee_id ORDER BY e.name`)
 	if e != nil {
 		return nil, e
 	}
@@ -59,7 +59,7 @@ func (r *Repository) Profiles(ctx context.Context) ([]Profile, error) {
 	var out []Profile
 	for rows.Next() {
 		var x Profile
-		if e = rows.Scan(&x.EmployeeID, &x.EmployeeNumber, &x.EmployeeName, &x.BirthPlace, &x.BirthDate, &x.Gender, &x.Address, &x.JoinedDate, &x.EmploymentStatus, &x.PhotoPath, &x.EmergencyContactName, &x.EmergencyContactPhone, &x.EmergencyContactRelationship); e != nil {
+		if e = rows.Scan(&x.EmployeeID, &x.EmployeeNumber, &x.EmployeeName, &x.BirthPlace, &x.BirthDate, &x.Gender, &x.Address, &x.JoinedDate, &x.EmploymentEndedAt, &x.EmploymentStatus, &x.PhotoPath, &x.EmergencyContactName, &x.EmergencyContactPhone, &x.EmergencyContactRelationship); e != nil {
 			return nil, e
 		}
 		out = append(out, x)
@@ -68,15 +68,15 @@ func (r *Repository) Profiles(ctx context.Context) ([]Profile, error) {
 }
 func (r *Repository) Profile(ctx context.Context, id uint64) (Profile, error) {
 	var x Profile
-	e := r.db.QueryRowContext(ctx, `SELECT ep.employee_id,e.employee_number,e.name,COALESCE(ep.birth_place,''),COALESCE(DATE_FORMAT(ep.birth_date,'%Y-%m-%d'),''),COALESCE(ep.gender,''),COALESCE(ep.address,''),COALESCE(DATE_FORMAT(ep.joined_date,'%Y-%m-%d'),''),ep.employment_status,COALESCE(ep.photo_path,''),COALESCE(ep.emergency_contact_name,''),COALESCE(ep.emergency_contact_phone,''),COALESCE(ep.emergency_contact_relationship,'') FROM employee_profiles ep JOIN employees e ON e.id=ep.employee_id WHERE ep.employee_id=?`, id).Scan(&x.EmployeeID, &x.EmployeeNumber, &x.EmployeeName, &x.BirthPlace, &x.BirthDate, &x.Gender, &x.Address, &x.JoinedDate, &x.EmploymentStatus, &x.PhotoPath, &x.EmergencyContactName, &x.EmergencyContactPhone, &x.EmergencyContactRelationship)
+	e := r.db.QueryRowContext(ctx, `SELECT ep.employee_id,e.employee_number,e.name,COALESCE(ep.birth_place,''),COALESCE(DATE_FORMAT(ep.birth_date,'%Y-%m-%d'),''),COALESCE(ep.gender,''),COALESCE(ep.address,''),COALESCE(DATE_FORMAT(ep.joined_date,'%Y-%m-%d'),''),COALESCE(DATE_FORMAT(ep.employment_ended_at,'%Y-%m-%d'),''),ep.employment_status,COALESCE(ep.photo_path,''),COALESCE(ep.emergency_contact_name,''),COALESCE(ep.emergency_contact_phone,''),COALESCE(ep.emergency_contact_relationship,'') FROM employee_profiles ep JOIN employees e ON e.id=ep.employee_id WHERE ep.employee_id=?`, id).Scan(&x.EmployeeID, &x.EmployeeNumber, &x.EmployeeName, &x.BirthPlace, &x.BirthDate, &x.Gender, &x.Address, &x.JoinedDate, &x.EmploymentEndedAt, &x.EmploymentStatus, &x.PhotoPath, &x.EmergencyContactName, &x.EmergencyContactPhone, &x.EmergencyContactRelationship)
 	return x, e
 }
 func (r *Repository) CreateProfile(ctx context.Context, x ProfileInput) error {
-	_, e := r.db.ExecContext(ctx, `INSERT INTO employee_profiles(employee_id,birth_place,birth_date,gender,address,joined_date,employment_status,photo_path,emergency_contact_name,emergency_contact_phone,emergency_contact_relationship) VALUES(?,?,?,?,?,?,?,?,?,?,?)`, x.EmployeeID, nullableString(x.BirthPlace), nullableString(x.BirthDate), nullableString(x.Gender), nullableString(x.Address), nullableString(x.JoinedDate), x.EmploymentStatus, nullableString(x.PhotoPath), nullableString(x.EmergencyContactName), nullableString(x.EmergencyContactPhone), nullableString(x.EmergencyContactRelationship))
+	_, e := r.db.ExecContext(ctx, `INSERT INTO employee_profiles(employee_id,birth_place,birth_date,gender,address,joined_date,employment_ended_at,employment_status,photo_path,emergency_contact_name,emergency_contact_phone,emergency_contact_relationship) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`, x.EmployeeID, nullableString(x.BirthPlace), nullableString(x.BirthDate), nullableString(x.Gender), nullableString(x.Address), nullableString(x.JoinedDate), nullableString(x.EmploymentEndedAt), x.EmploymentStatus, nullableString(x.PhotoPath), nullableString(x.EmergencyContactName), nullableString(x.EmergencyContactPhone), nullableString(x.EmergencyContactRelationship))
 	return e
 }
 func (r *Repository) UpdateProfile(ctx context.Context, id uint64, x ProfileInput) error {
-	_, e := r.db.ExecContext(ctx, `UPDATE employee_profiles SET birth_place=?,birth_date=?,gender=?,address=?,joined_date=?,employment_status=?,photo_path=?,emergency_contact_name=?,emergency_contact_phone=?,emergency_contact_relationship=? WHERE employee_id=?`, nullableString(x.BirthPlace), nullableString(x.BirthDate), nullableString(x.Gender), nullableString(x.Address), nullableString(x.JoinedDate), x.EmploymentStatus, nullableString(x.PhotoPath), nullableString(x.EmergencyContactName), nullableString(x.EmergencyContactPhone), nullableString(x.EmergencyContactRelationship), id)
+	_, e := r.db.ExecContext(ctx, `UPDATE employee_profiles SET birth_place=?,birth_date=?,gender=?,address=?,joined_date=?,employment_ended_at=?,employment_status=?,photo_path=?,emergency_contact_name=?,emergency_contact_phone=?,emergency_contact_relationship=? WHERE employee_id=?`, nullableString(x.BirthPlace), nullableString(x.BirthDate), nullableString(x.Gender), nullableString(x.Address), nullableString(x.JoinedDate), nullableString(x.EmploymentEndedAt), x.EmploymentStatus, nullableString(x.PhotoPath), nullableString(x.EmergencyContactName), nullableString(x.EmergencyContactPhone), nullableString(x.EmergencyContactRelationship), id)
 	return e
 }
 func (r *Repository) DeleteProfile(ctx context.Context, id uint64) error {
@@ -106,11 +106,32 @@ func (r *Repository) Assignment(ctx context.Context, id uint64) (Assignment, err
 	return x, e
 }
 func (r *Repository) CreateAssignment(ctx context.Context, x AssignmentInput) error {
-	_, e := r.db.ExecContext(ctx, `INSERT INTO employee_assignments(employee_id,position_id,department_id,store_id,started_at,ended_at) VALUES(?,?,?,?,?,?)`, x.EmployeeID, x.PositionID, x.DepartmentID, x.StoreID, x.StartedAt, nullableString(x.EndedAt))
-	return e
+	tx, e := r.db.BeginTx(ctx, nil)
+	if e != nil {
+		return e
+	}
+	defer tx.Rollback()
+	var currentID uint64
+	var currentStart string
+	e = tx.QueryRowContext(ctx, `SELECT id,DATE_FORMAT(started_at,'%Y-%m-%d') FROM employee_assignments WHERE employee_id=? AND ended_at IS NULL FOR UPDATE`, x.EmployeeID).Scan(&currentID, &currentStart)
+	if e != nil && e != sql.ErrNoRows {
+		return e
+	}
+	if e == nil {
+		if currentStart >= x.StartedAt {
+			return ErrInvalid
+		}
+		if _, e = tx.ExecContext(ctx, `UPDATE employee_assignments SET ended_at=DATE_SUB(?,INTERVAL 1 DAY) WHERE id=?`, x.StartedAt, currentID); e != nil {
+			return e
+		}
+	}
+	if _, e = tx.ExecContext(ctx, `INSERT INTO employee_assignments(employee_id,position_id,department_id,store_id,started_at,ended_at) VALUES(?,?,?,?,?,NULL)`, x.EmployeeID, x.PositionID, x.DepartmentID, x.StoreID, x.StartedAt); e != nil {
+		return e
+	}
+	return tx.Commit()
 }
 func (r *Repository) UpdateAssignment(ctx context.Context, id uint64, x AssignmentInput) error {
-	_, e := r.db.ExecContext(ctx, `UPDATE employee_assignments SET employee_id=?,position_id=?,department_id=?,store_id=?,started_at=?,ended_at=? WHERE id=?`, x.EmployeeID, x.PositionID, x.DepartmentID, x.StoreID, x.StartedAt, nullableString(x.EndedAt), id)
+	_, e := r.db.ExecContext(ctx, `UPDATE employee_assignments SET employee_id=?,position_id=?,department_id=?,store_id=?,started_at=? WHERE id=?`, x.EmployeeID, x.PositionID, x.DepartmentID, x.StoreID, x.StartedAt, id)
 	return e
 }
 func (r *Repository) DeleteAssignment(ctx context.Context, id uint64) error {

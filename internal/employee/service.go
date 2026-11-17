@@ -129,7 +129,7 @@ func invalidProfile(x ProfileInput) bool {
 	if x.EmployeeID == 0 || !oneOf(x.EmploymentStatus, "trainee", "probation", "contract", "permanent") || (!oneOf(x.Gender, "", "male", "female")) {
 		return true
 	}
-	return !validDate(x.BirthDate, true) || !validDate(x.JoinedDate, true)
+	return !validDate(x.BirthDate, true) || !validDate(x.JoinedDate, true) || !validDate(x.EmploymentEndedAt, true) || (x.EmploymentEndedAt != "" && (x.JoinedDate == "" || x.EmploymentEndedAt < x.JoinedDate))
 }
 
 func (s *Service) CreateAssignment(c context.Context, x AssignmentInput) error {
