@@ -317,6 +317,10 @@ document.querySelectorAll("[data-edit-organization]").forEach((button) => {
     form.elements.name.value = button.dataset.name ?? "";
     if (form.elements.rank_order) form.elements.rank_order.value = button.dataset.rankOrder ?? "";
     if (form.elements.job_level_id) form.elements.job_level_id.value = button.dataset.jobLevelId ?? "";
+    if (form.elements.department_id && button.dataset.kind === "position") {
+      const mapping = document.querySelector(`[data-position-departments] [data-position-id="${button.dataset.id}"]`);
+      form.elements.department_id.value = mapping?.dataset.departmentId ?? "";
+    }
     dialog.showModal();
   });
 });
@@ -358,6 +362,16 @@ document.querySelectorAll("[data-edit-assignment]").forEach((button) => {
     Object.entries(values).forEach(([field, data]) => { form.elements[field].value = button.dataset[data] ?? ""; });
     dialog.showModal();
   });
+});
+
+document.querySelectorAll("[data-assignment-fields]").forEach((fields) => {
+  const position = fields.querySelector('[name="position_id"]');
+  const department = fields.querySelector('[name="department_id"]');
+  if (!position || !department) return;
+  const syncDepartment = () => {
+    department.value = position.selectedOptions[0]?.dataset.departmentId ?? "";
+  };
+  position.addEventListener("change", syncDepartment);
 });
 
 document.querySelectorAll("[data-edit-reporting]").forEach((button) => {

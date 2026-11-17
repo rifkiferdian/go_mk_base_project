@@ -133,7 +133,7 @@ func invalidProfile(x ProfileInput) bool {
 }
 
 func (s *Service) CreateAssignment(c context.Context, x AssignmentInput) error {
-	if invalidAssignment(x) {
+	if invalidAssignment(x) || !s.positionMatchesDepartment(c, x) {
 		return ErrInvalid
 	}
 	return dbErr(s.repository.CreateAssignment(c, x))
@@ -142,7 +142,7 @@ func (s *Service) UpdateAssignment(c context.Context, id uint64, x AssignmentInp
 	if _, e := s.repository.Assignment(c, id); e != nil {
 		return e
 	}
-	if invalidAssignment(x) {
+	if invalidAssignment(x) || !s.positionMatchesDepartment(c, x) {
 		return ErrInvalid
 	}
 	return dbErr(s.repository.UpdateAssignment(c, id, x))
@@ -155,6 +155,10 @@ func (s *Service) DeleteAssignment(c context.Context, id uint64) error {
 }
 func invalidAssignment(x AssignmentInput) bool {
 	return x.EmployeeID == 0 || x.PositionID == 0 || x.DepartmentID == 0 || x.StoreID == 0 || !validPeriod(x.StartedAt, x.EndedAt)
+}
+func (s *Service) positionMatchesDepartment(c context.Context, x AssignmentInput) bool {
+	matches, err := s.repository.PositionMatchesDepartment(c, x.PositionID, x.DepartmentID)
+	return err == nil && matches
 }
 
 func (s *Service) CreateReportingLine(c context.Context, x ReportingLineInput) error {

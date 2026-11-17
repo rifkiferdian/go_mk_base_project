@@ -44,7 +44,7 @@ func (r *Repository) DeleteJobLevel(ctx context.Context, id uint64) error {
 }
 
 func (r *Repository) Positions(ctx context.Context) ([]Position, error) {
-	rows, err := r.db.QueryContext(ctx, `SELECT p.id,p.job_level_id,l.name,l.rank_order,p.code,p.name,COUNT(a.id) FROM positions p JOIN job_levels l ON l.id=p.job_level_id LEFT JOIN employee_assignments a ON a.position_id=p.id GROUP BY p.id,p.job_level_id,l.name,l.rank_order,p.code,p.name ORDER BY l.rank_order,p.name`)
+	rows, err := r.db.QueryContext(ctx, `SELECT p.id,p.job_level_id,COALESCE(p.department_id,0),CONCAT(l.name,' / ',COALESCE(d.name,'Belum ada bagian')),l.rank_order,COALESCE(d.name,''),p.code,p.name,COUNT(a.id) FROM positions p JOIN job_levels l ON l.id=p.job_level_id LEFT JOIN departments d ON d.id=p.department_id LEFT JOIN employee_assignments a ON a.position_id=p.id GROUP BY p.id,p.job_level_id,p.department_id,l.name,l.rank_order,d.name,p.code,p.name ORDER BY l.rank_order,p.name`)
 	if err != nil {
 		return nil, fmt.Errorf("list positions: %w", err)
 	}
@@ -52,7 +52,7 @@ func (r *Repository) Positions(ctx context.Context) ([]Position, error) {
 	var result []Position
 	for rows.Next() {
 		var item Position
-		if err := rows.Scan(&item.ID, &item.JobLevelID, &item.JobLevelName, &item.JobLevelRank, &item.Code, &item.Name, &item.AssignmentCount); err != nil {
+		if err := rows.Scan(&item.ID, &item.JobLevelID, &item.DepartmentID, &item.JobLevelName, &item.JobLevelRank, &item.DepartmentName, &item.Code, &item.Name, &item.AssignmentCount); err != nil {
 			return nil, err
 		}
 		result = append(result, item)
@@ -61,15 +61,15 @@ func (r *Repository) Positions(ctx context.Context) ([]Position, error) {
 }
 func (r *Repository) Position(ctx context.Context, id uint64) (Position, error) {
 	var item Position
-	err := r.db.QueryRowContext(ctx, `SELECT p.id,p.job_level_id,l.name,l.rank_order,p.code,p.name,COUNT(a.id) FROM positions p JOIN job_levels l ON l.id=p.job_level_id LEFT JOIN employee_assignments a ON a.position_id=p.id WHERE p.id=? GROUP BY p.id,p.job_level_id,l.name,l.rank_order,p.code,p.name`, id).Scan(&item.ID, &item.JobLevelID, &item.JobLevelName, &item.JobLevelRank, &item.Code, &item.Name, &item.AssignmentCount)
+	err := r.db.QueryRowContext(ctx, `SELECT p.id,p.job_level_id,COALESCE(p.department_id,0),CONCAT(l.name,' / ',COALESCE(d.name,'Belum ada bagian')),l.rank_order,COALESCE(d.name,''),p.code,p.name,COUNT(a.id) FROM positions p JOIN job_levels l ON l.id=p.job_level_id LEFT JOIN departments d ON d.id=p.department_id LEFT JOIN employee_assignments a ON a.position_id=p.id WHERE p.id=? GROUP BY p.id,p.job_level_id,p.department_id,l.name,l.rank_order,d.name,p.code,p.name`, id).Scan(&item.ID, &item.JobLevelID, &item.DepartmentID, &item.JobLevelName, &item.JobLevelRank, &item.DepartmentName, &item.Code, &item.Name, &item.AssignmentCount)
 	return item, err
 }
 func (r *Repository) CreatePosition(ctx context.Context, input PositionInput) error {
-	_, err := r.db.ExecContext(ctx, `INSERT INTO positions(job_level_id,code,name) VALUES(?,?,?)`, input.JobLevelID, input.Code, input.Name)
+	_, err := r.db.ExecContext(ctx, `INSERT INTO positions(job_level_id,department_id,code,name) VALUES(?,?,?,?)`, input.JobLevelID, input.DepartmentID, input.Code, input.Name)
 	return err
 }
 func (r *Repository) UpdatePosition(ctx context.Context, id uint64, input PositionInput) error {
-	_, err := r.db.ExecContext(ctx, `UPDATE positions SET job_level_id=?,code=?,name=? WHERE id=?`, input.JobLevelID, input.Code, input.Name, id)
+	_, err := r.db.ExecContext(ctx, `UPDATE positions SET job_level_id=?,department_id=?,code=?,name=? WHERE id=?`, input.JobLevelID, input.DepartmentID, input.Code, input.Name, id)
 	return err
 }
 func (r *Repository) DeletePosition(ctx context.Context, id uint64) error {
@@ -77,7 +77,7 @@ func (r *Repository) DeletePosition(ctx context.Context, id uint64) error {
 }
 
 func (r *Repository) Departments(ctx context.Context) ([]Department, error) {
-	rows, err := r.db.QueryContext(ctx, `SELECT d.id,d.code,d.name,COUNT(a.id) FROM departments d LEFT JOIN employee_assignments a ON a.department_id=d.id GROUP BY d.id,d.code,d.name ORDER BY d.name`)
+	rows, err := r.db.QueryContext(ctx, `SELECT d.id,d.code,d.name,(SELECT COUNT(*) FROM employee_assignments a WHERE a.department_id=d.id),(SELECT COUNT(*) FROM positions p WHERE p.department_id=d.id),COALESCE((SELECT GROUP_CONCAT(p.name ORDER BY p.name SEPARATOR ', ') FROM positions p WHERE p.department_id=d.id),'') FROM departments d ORDER BY d.name`)
 	if err != nil {
 		return nil, fmt.Errorf("list departments: %w", err)
 	}
@@ -85,7 +85,7 @@ func (r *Repository) Departments(ctx context.Context) ([]Department, error) {
 	var result []Department
 	for rows.Next() {
 		var item Department
-		if err := rows.Scan(&item.ID, &item.Code, &item.Name, &item.AssignmentCount); err != nil {
+		if err := rows.Scan(&item.ID, &item.Code, &item.Name, &item.AssignmentCount, &item.PositionCount, &item.PositionNames); err != nil {
 			return nil, err
 		}
 		result = append(result, item)
@@ -94,7 +94,7 @@ func (r *Repository) Departments(ctx context.Context) ([]Department, error) {
 }
 func (r *Repository) Department(ctx context.Context, id uint64) (Department, error) {
 	var item Department
-	err := r.db.QueryRowContext(ctx, `SELECT d.id,d.code,d.name,COUNT(a.id) FROM departments d LEFT JOIN employee_assignments a ON a.department_id=d.id WHERE d.id=? GROUP BY d.id,d.code,d.name`, id).Scan(&item.ID, &item.Code, &item.Name, &item.AssignmentCount)
+	err := r.db.QueryRowContext(ctx, `SELECT d.id,d.code,d.name,(SELECT COUNT(*) FROM employee_assignments a WHERE a.department_id=d.id),(SELECT COUNT(*) FROM positions p WHERE p.department_id=d.id),COALESCE((SELECT GROUP_CONCAT(p.name ORDER BY p.name SEPARATOR ', ') FROM positions p WHERE p.department_id=d.id),'') FROM departments d WHERE d.id=?`, id).Scan(&item.ID, &item.Code, &item.Name, &item.AssignmentCount, &item.PositionCount, &item.PositionNames)
 	return item, err
 }
 func (r *Repository) CreateDepartment(ctx context.Context, input DepartmentInput) error {

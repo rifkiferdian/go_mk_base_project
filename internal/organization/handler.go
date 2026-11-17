@@ -85,6 +85,11 @@ func (h *Handler) Positions(c *gin.Context) {
 		h.internalError(c, err)
 		return
 	}
+	departments, err := h.service.Departments(c.Request.Context())
+	if err != nil {
+		h.internalError(c, err)
+		return
+	}
 	used, assignments := 0, 0
 	for _, item := range items {
 		assignments += item.AssignmentCount
@@ -92,18 +97,19 @@ func (h *Handler) Positions(c *gin.Context) {
 			used++
 		}
 	}
-	h.render(c, http.StatusOK, "organization/positions.html", "positions", gin.H{"Title": "Jabatan", "Positions": items, "JobLevels": levels, "PositionCount": len(items), "UsedCount": used, "AssignmentCount": assignments})
+	h.render(c, http.StatusOK, "organization/positions.html", "positions", gin.H{"Title": "Jabatan", "Positions": items, "JobLevels": levels, "Departments": departments, "PositionCount": len(items), "UsedCount": used, "AssignmentCount": assignments})
 }
 func (h *Handler) CreatePosition(c *gin.Context) {
 	if !h.validCSRF(c) {
 		return
 	}
 	levelID, err := strconv.ParseUint(c.PostForm("job_level_id"), 10, 64)
-	if err != nil {
+	departmentID, departmentErr := strconv.ParseUint(c.PostForm("department_id"), 10, 64)
+	if err != nil || departmentErr != nil {
 		h.redirect(c, "positions", "error", "invalid")
 		return
 	}
-	h.redirectResult(c, "positions", h.service.CreatePosition(c.Request.Context(), PositionInput{JobLevelID: levelID, Code: c.PostForm("code"), Name: c.PostForm("name")}), "position-created")
+	h.redirectResult(c, "positions", h.service.CreatePosition(c.Request.Context(), PositionInput{JobLevelID: levelID, DepartmentID: departmentID, Code: c.PostForm("code"), Name: c.PostForm("name")}), "position-created")
 }
 func (h *Handler) UpdatePosition(c *gin.Context) {
 	if !h.validCSRF(c) {
@@ -111,11 +117,12 @@ func (h *Handler) UpdatePosition(c *gin.Context) {
 	}
 	id, ok := routeID(c)
 	levelID, err := strconv.ParseUint(c.PostForm("job_level_id"), 10, 64)
-	if !ok || err != nil {
+	departmentID, departmentErr := strconv.ParseUint(c.PostForm("department_id"), 10, 64)
+	if !ok || err != nil || departmentErr != nil {
 		h.redirect(c, "positions", "error", "invalid")
 		return
 	}
-	h.redirectResult(c, "positions", h.service.UpdatePosition(c.Request.Context(), id, PositionInput{JobLevelID: levelID, Code: c.PostForm("code"), Name: c.PostForm("name")}), "position-updated")
+	h.redirectResult(c, "positions", h.service.UpdatePosition(c.Request.Context(), id, PositionInput{JobLevelID: levelID, DepartmentID: departmentID, Code: c.PostForm("code"), Name: c.PostForm("name")}), "position-updated")
 }
 func (h *Handler) DeletePosition(c *gin.Context) {
 	if !h.validCSRF(c) {
@@ -138,7 +145,7 @@ func (h *Handler) Departments(c *gin.Context) {
 	used, assignments := 0, 0
 	for _, item := range items {
 		assignments += item.AssignmentCount
-		if item.AssignmentCount > 0 {
+		if item.AssignmentCount > 0 || item.PositionCount > 0 {
 			used++
 		}
 	}

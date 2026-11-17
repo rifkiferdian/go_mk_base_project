@@ -60,24 +60,34 @@ func (s *Service) DeleteJobLevel(ctx context.Context, id uint64) error {
 
 func (s *Service) CreatePosition(ctx context.Context, input PositionInput) error {
 	input.Code, input.Name = normalizeText(input.Code, input.Name)
-	if input.JobLevelID == 0 || invalidCodeName(input.Code, input.Name) {
+	if input.JobLevelID == 0 || input.DepartmentID == 0 || invalidCodeName(input.Code, input.Name) {
 		return ErrInvalid
 	}
 	if _, err := s.repository.JobLevel(ctx, input.JobLevelID); err != nil {
+		return ErrInvalid
+	}
+	if _, err := s.repository.Department(ctx, input.DepartmentID); err != nil {
 		return ErrInvalid
 	}
 	return dbError(s.repository.CreatePosition(ctx, input))
 }
 func (s *Service) UpdatePosition(ctx context.Context, id uint64, input PositionInput) error {
-	if _, err := s.repository.Position(ctx, id); err != nil {
+	current, err := s.repository.Position(ctx, id)
+	if err != nil {
 		return err
 	}
 	input.Code, input.Name = normalizeText(input.Code, input.Name)
-	if input.JobLevelID == 0 || invalidCodeName(input.Code, input.Name) {
+	if input.JobLevelID == 0 || input.DepartmentID == 0 || invalidCodeName(input.Code, input.Name) {
 		return ErrInvalid
 	}
 	if _, err := s.repository.JobLevel(ctx, input.JobLevelID); err != nil {
 		return ErrInvalid
+	}
+	if _, err := s.repository.Department(ctx, input.DepartmentID); err != nil {
+		return ErrInvalid
+	}
+	if current.AssignmentCount > 0 && current.DepartmentID != input.DepartmentID {
+		return ErrInUse
 	}
 	return dbError(s.repository.UpdatePosition(ctx, id, input))
 }
@@ -114,7 +124,7 @@ func (s *Service) DeleteDepartment(ctx context.Context, id uint64) error {
 	if err != nil {
 		return err
 	}
-	if item.AssignmentCount > 0 {
+	if item.AssignmentCount > 0 || item.PositionCount > 0 {
 		return ErrInUse
 	}
 	return dbError(s.repository.DeleteDepartment(ctx, id))

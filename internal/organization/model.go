@@ -12,7 +12,9 @@ type JobLevel struct {
 type Position struct {
 	ID              uint64
 	JobLevelID      uint64
+	DepartmentID    uint64
 	JobLevelName    string
+	DepartmentName  string
 	JobLevelRank    uint16
 	Code            string
 	Name            string
@@ -23,6 +25,8 @@ type Department struct {
 	ID              uint64
 	Code            string
 	Name            string
+	PositionNames   string
+	PositionCount   int
 	AssignmentCount int
 }
 
@@ -31,7 +35,7 @@ type JobLevelInput struct {
 	RankOrder  uint16
 }
 type PositionInput struct {
-	JobLevelID uint64
-	Code, Name string
+	JobLevelID, DepartmentID uint64
+	Code, Name               string
 }
 type DepartmentInput struct{ Code, Name string }

@@ -41,6 +41,10 @@ FROM employees e JOIN (
 ) x ON x.nik=e.employee_number JOIN positions p ON p.code=x.position_code
 JOIN departments d ON d.code=x.department_code JOIN stores s ON s.code='MK5'
 ON DUPLICATE KEY UPDATE employee_id=VALUES(employee_id);
+UPDATE positions p
+JOIN employee_assignments a ON a.position_id=p.id
+SET p.department_id=a.department_id
+WHERE p.department_id IS NULL;
 INSERT INTO employee_reporting_lines(employee_assignment_id,supervisor_assignment_id,started_at)
 SELECT child.id,parent.id,child.started_at FROM (
  SELECT 'DUMMY-SPV-001' child_nik,'DUMMY-MGR-001' parent_nik

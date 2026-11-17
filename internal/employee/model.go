@@ -33,8 +33,9 @@ type ReportingLine struct {
 }
 
 type Option struct {
-	ID    uint64
-	Label string
+	ID           uint64
+	DepartmentID uint64
+	Label        string
 }
 
 type EmployeeInput struct{ EmployeeNumber, Name, Email, Phone, Status string }

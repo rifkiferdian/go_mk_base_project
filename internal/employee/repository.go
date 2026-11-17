@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 )
 
 type Repository struct{ db *sql.DB }
@@ -152,6 +153,9 @@ func (r *Repository) DeleteReportingLine(ctx context.Context, id uint64) error {
 }
 
 func (r *Repository) Options(ctx context.Context, query string) ([]Option, error) {
+	if strings.Contains(query, "FROM positions p JOIN job_levels") {
+		return r.PositionOptions(ctx)
+	}
 	rows, e := r.db.QueryContext(ctx, query)
 	if e != nil {
 		return nil, e
@@ -166,6 +170,27 @@ func (r *Repository) Options(ctx context.Context, query string) ([]Option, error
 		out = append(out, x)
 	}
 	return out, rows.Err()
+}
+func (r *Repository) PositionOptions(ctx context.Context) ([]Option, error) {
+	rows, e := r.db.QueryContext(ctx, `SELECT p.id,COALESCE(p.department_id,0),CONCAT(l.name,' — ',p.name) FROM positions p JOIN job_levels l ON l.id=p.job_level_id ORDER BY l.rank_order,p.name`)
+	if e != nil {
+		return nil, e
+	}
+	defer rows.Close()
+	var out []Option
+	for rows.Next() {
+		var x Option
+		if e = rows.Scan(&x.ID, &x.DepartmentID, &x.Label); e != nil {
+			return nil, e
+		}
+		out = append(out, x)
+	}
+	return out, rows.Err()
+}
+func (r *Repository) PositionMatchesDepartment(ctx context.Context, positionID, departmentID uint64) (bool, error) {
+	var matches bool
+	e := r.db.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM positions WHERE id=? AND department_id=?)`, positionID, departmentID).Scan(&matches)
+	return matches, e
 }
 func affected(res sql.Result, e error) error {
 	if e != nil {
