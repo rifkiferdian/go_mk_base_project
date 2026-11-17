@@ -27,8 +27,8 @@ func allAccess(roles string) bool {
 	}
 	return false
 }
-func (s *Service) List(c context.Context, uid uint64, roles string) ([]Assessment, error) {
-	items, err := s.repository.Assessments(c, uid, allAccess(roles))
+func (s *Service) List(c context.Context, uid uint64, roles string, filter ListFilter) ([]Assessment, error) {
+	items, err := s.repository.Assessments(c, uid, allAccess(roles), filter)
 	if err != nil {
 		return nil, err
 	}
@@ -39,6 +39,9 @@ func (s *Service) List(c context.Context, uid uint64, roles string) ([]Assessmen
 		}
 	}
 	return items, nil
+}
+func (s *Service) AssessmentYears(c context.Context, uid uint64, roles string) ([]int, error) {
+	return s.repository.AssessmentYears(c, uid, allAccess(roles))
 }
 func (s *Service) Form(c context.Context, id, uid uint64, roles string) (FormData, error) {
 	trainees, e := s.repository.Trainees(c, uid, allAccess(roles))

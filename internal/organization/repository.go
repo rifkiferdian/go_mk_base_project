@@ -11,7 +11,7 @@ type Repository struct{ db *sql.DB }
 func NewRepository(db *sql.DB) *Repository { return &Repository{db: db} }
 
 func (r *Repository) JobLevels(ctx context.Context) ([]JobLevel, error) {
-	rows, err := r.db.QueryContext(ctx, `SELECT l.id,l.code,l.name,l.rank_order,COUNT(p.id) FROM job_levels l LEFT JOIN positions p ON p.job_level_id=l.id GROUP BY l.id,l.code,l.name,l.rank_order ORDER BY l.rank_order,l.name`)
+	rows, err := r.db.QueryContext(ctx, `SELECT l.id,l.code,l.name,l.rank_order,COUNT(p.id),COALESCE(GROUP_CONCAT(p.name ORDER BY p.name SEPARATOR ', '),'') FROM job_levels l LEFT JOIN positions p ON p.job_level_id=l.id GROUP BY l.id,l.code,l.name,l.rank_order ORDER BY l.rank_order,l.name`)
 	if err != nil {
 		return nil, fmt.Errorf("list job levels: %w", err)
 	}
@@ -19,7 +19,7 @@ func (r *Repository) JobLevels(ctx context.Context) ([]JobLevel, error) {
 	var result []JobLevel
 	for rows.Next() {
 		var item JobLevel
-		if err := rows.Scan(&item.ID, &item.Code, &item.Name, &item.RankOrder, &item.PositionCount); err != nil {
+		if err := rows.Scan(&item.ID, &item.Code, &item.Name, &item.RankOrder, &item.PositionCount, &item.PositionNames); err != nil {
 			return nil, err
 		}
 		result = append(result, item)
@@ -28,7 +28,7 @@ func (r *Repository) JobLevels(ctx context.Context) ([]JobLevel, error) {
 }
 func (r *Repository) JobLevel(ctx context.Context, id uint64) (JobLevel, error) {
 	var item JobLevel
-	err := r.db.QueryRowContext(ctx, `SELECT l.id,l.code,l.name,l.rank_order,COUNT(p.id) FROM job_levels l LEFT JOIN positions p ON p.job_level_id=l.id WHERE l.id=? GROUP BY l.id,l.code,l.name,l.rank_order`, id).Scan(&item.ID, &item.Code, &item.Name, &item.RankOrder, &item.PositionCount)
+	err := r.db.QueryRowContext(ctx, `SELECT l.id,l.code,l.name,l.rank_order,COUNT(p.id),COALESCE(GROUP_CONCAT(p.name ORDER BY p.name SEPARATOR ', '),'') FROM job_levels l LEFT JOIN positions p ON p.job_level_id=l.id WHERE l.id=? GROUP BY l.id,l.code,l.name,l.rank_order`, id).Scan(&item.ID, &item.Code, &item.Name, &item.RankOrder, &item.PositionCount, &item.PositionNames)
 	return item, err
 }
 func (r *Repository) CreateJobLevel(ctx context.Context, input JobLevelInput) error {

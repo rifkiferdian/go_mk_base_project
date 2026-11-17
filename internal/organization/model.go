@@ -4,6 +4,7 @@ type JobLevel struct {
 	ID            uint64
 	Code          string
 	Name          string
+	PositionNames string
 	RankOrder     uint16
 	PositionCount int
 }

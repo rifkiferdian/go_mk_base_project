@@ -11,12 +11,25 @@ type Repository struct{ db *sql.DB }
 
 func NewRepository(db *sql.DB) *Repository { return &Repository{db: db} }
 
-func (r *Repository) Assessments(ctx context.Context, userID uint64, all bool) ([]Assessment, error) {
+func (r *Repository) Assessments(ctx context.Context, userID uint64, all bool, filter ListFilter) ([]Assessment, error) {
 	q := `SELECT a.id,a.trainee_employee_id,a.employee_number,a.employee_name,COALESCE(a.trainee_position_name,''),a.department_name,a.store_name,a.training_month,DATE_FORMAT(a.assessment_date,'%Y-%m-%d'),COALESCE(a.notes,''),a.status,a.assessor_name,COALESCE(a.assessor_position_name,''),COALESCE(v.total_score,0),COALESCE(v.total_weight,0),COALESCE(v.average_score,0),COALESCE(v.rating,''),COALESCE(v.scored_count,0),COALESCE(v.criterion_count,0) FROM trainee_assessments a LEFT JOIN trainee_assessment_results v ON v.assessment_id=a.id`
 	args := []any{}
+	conditions := []string{}
 	if !all {
-		q += ` JOIN users au ON au.id=? JOIN employee_assignments aa ON aa.employee_id=au.employee_id JOIN employee_reporting_lines rl ON rl.supervisor_assignment_id=aa.id AND rl.employee_assignment_id=a.trainee_assignment_id WHERE rl.started_at<=a.assessment_date AND (rl.ended_at IS NULL OR rl.ended_at>=a.assessment_date)`
+		q += ` JOIN users au ON au.id=? JOIN employee_assignments aa ON aa.employee_id=au.employee_id JOIN employee_reporting_lines rl ON rl.supervisor_assignment_id=aa.id AND rl.employee_assignment_id=a.trainee_assignment_id`
 		args = append(args, userID)
+		conditions = append(conditions, `rl.started_at<=a.assessment_date AND (rl.ended_at IS NULL OR rl.ended_at>=a.assessment_date)`)
+	}
+	if filter.Month > 0 {
+		conditions = append(conditions, `MONTH(a.assessment_date)=?`)
+		args = append(args, filter.Month)
+	}
+	if filter.Year > 0 {
+		conditions = append(conditions, `YEAR(a.assessment_date)=?`)
+		args = append(args, filter.Year)
+	}
+	if len(conditions) > 0 {
+		q += ` WHERE ` + strings.Join(conditions, ` AND `)
 	}
 	q += ` ORDER BY a.assessment_date DESC,a.id DESC`
 	rows, e := r.db.QueryContext(ctx, q, args...)
@@ -33,6 +46,30 @@ func (r *Repository) Assessments(ctx context.Context, userID uint64, all bool) (
 		out = append(out, x)
 	}
 	return out, rows.Err()
+}
+
+func (r *Repository) AssessmentYears(ctx context.Context, userID uint64, all bool) ([]int, error) {
+	q := `SELECT DISTINCT YEAR(a.assessment_date) FROM trainee_assessments a`
+	args := []any{}
+	if !all {
+		q += ` JOIN users au ON au.id=? JOIN employee_assignments aa ON aa.employee_id=au.employee_id JOIN employee_reporting_lines rl ON rl.supervisor_assignment_id=aa.id AND rl.employee_assignment_id=a.trainee_assignment_id WHERE rl.started_at<=a.assessment_date AND (rl.ended_at IS NULL OR rl.ended_at>=a.assessment_date)`
+		args = append(args, userID)
+	}
+	q += ` ORDER BY YEAR(a.assessment_date) DESC`
+	rows, err := r.db.QueryContext(ctx, q, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var years []int
+	for rows.Next() {
+		var year int
+		if err = rows.Scan(&year); err != nil {
+			return nil, err
+		}
+		years = append(years, year)
+	}
+	return years, rows.Err()
 }
 func (r *Repository) Trainees(ctx context.Context, userID uint64, all bool) ([]Trainee, error) {
 	q := `SELECT e.id,a.id,a.store_id,e.employee_number,e.name,p.name,d.name,s.name,d.id FROM employees e JOIN employee_profiles ep ON ep.employee_id=e.id AND ep.employment_status='trainee' JOIN employee_assignments a ON a.employee_id=e.id AND a.ended_at IS NULL JOIN positions p ON p.id=a.position_id JOIN departments d ON d.id=a.department_id JOIN stores s ON s.id=a.store_id`
@@ -101,7 +138,7 @@ func (r *Repository) Rubric(ctx context.Context) ([]Aspect, error) {
 	return out, rows.Err()
 }
 func (r *Repository) Assessment(ctx context.Context, id, userID uint64, all bool) (Assessment, error) {
-	items, e := r.Assessments(ctx, userID, all)
+	items, e := r.Assessments(ctx, userID, all, ListFilter{})
 	if e != nil {
 		return Assessment{}, e
 	}

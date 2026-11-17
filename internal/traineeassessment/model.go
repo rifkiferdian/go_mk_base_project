@@ -9,6 +9,10 @@ type Assessment struct {
 	ScoredCount, CriterionCount                                           int
 	Details                                                               []AssessmentDetail
 }
+type ListFilter struct {
+	Month int
+	Year  int
+}
 type AssessmentDetail struct {
 	AspectName, CriterionDescription string
 	Weight                           float64

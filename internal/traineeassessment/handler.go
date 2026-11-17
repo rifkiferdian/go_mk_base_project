@@ -23,7 +23,21 @@ func NewHandler(a string, s *Service, n *navigation.Service) *Handler { return &
 func (h *Handler) Index(c *gin.Context) {
 	u, _ := auth.CurrentUser(c)
 	uid, _ := strconv.ParseUint(u.ID, 10, 64)
-	items, e := h.service.List(c, uid, u.RoleName)
+	month, _ := strconv.Atoi(c.Query("month"))
+	year, _ := strconv.Atoi(c.Query("year"))
+	if month < 1 || month > 12 {
+		month = 0
+	}
+	if year < 1 || year > 9999 {
+		year = 0
+	}
+	filter := ListFilter{Month: month, Year: year}
+	items, e := h.service.List(c, uid, u.RoleName, filter)
+	if e != nil {
+		h.fail(c, e)
+		return
+	}
+	years, e := h.service.AssessmentYears(c, uid, u.RoleName)
 	if e != nil {
 		h.fail(c, e)
 		return
@@ -36,7 +50,7 @@ func (h *Handler) Index(c *gin.Context) {
 			draft++
 		}
 	}
-	h.render(c, "trainee_assessment/index.html", gin.H{"Title": "Penilaian Trainee", "Assessments": items, "AssessmentCount": len(items), "DraftCount": draft, "FinalCount": final})
+	h.render(c, "trainee_assessment/index.html", gin.H{"Title": "Penilaian Trainee", "Assessments": items, "AssessmentCount": len(items), "DraftCount": draft, "FinalCount": final, "Filter": filter, "Years": years})
 }
 func (h *Handler) New(c *gin.Context) { h.form(c, 0) }
 func (h *Handler) Edit(c *gin.Context) {
