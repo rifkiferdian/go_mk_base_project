@@ -235,7 +235,7 @@ func (h *Handler) ReportingLines(c *gin.Context) {
 			current++
 		}
 	}
-	h.render(c, "employee/reporting_lines.html", "employee-reporting-lines", gin.H{"Title": "Atasan dan Bawahan", "ReportingLines": items, "Assignments": options, "ReportingCount": len(items), "CurrentCount": current})
+	h.render(c, "employee/reporting_lines.html", "employee-reporting-lines", gin.H{"Title": "Struktur Supervisi", "ReportingLines": items, "Assignments": options, "ReportingCount": len(items), "CurrentCount": current})
 }
 func (h *Handler) CreateReportingLine(c *gin.Context) {
 	if !h.csrf(c, "employee-reporting-lines") {
@@ -346,5 +346,5 @@ func initials(n string) string {
 	return v
 }
 func message(c string) string {
-	return map[string]string{"employee-created": "Karyawan berhasil ditambahkan.", "employee-updated": "Data karyawan berhasil diperbarui.", "employee-deleted": "Karyawan berhasil dihapus.", "profile-created": "Biodata berhasil ditambahkan.", "profile-updated": "Biodata berhasil diperbarui.", "profile-deleted": "Biodata berhasil dihapus.", "assignment-created": "Penempatan berhasil ditambahkan.", "assignment-updated": "Penempatan berhasil diperbarui.", "assignment-deleted": "Penempatan berhasil dihapus.", "reporting-created": "Hubungan atasan berhasil ditambahkan.", "reporting-updated": "Hubungan atasan berhasil diperbarui.", "reporting-deleted": "Hubungan atasan berhasil dihapus.", "invalid": "Data belum lengkap atau periode tidak valid.", "duplicate": "Data aktif atau nomor tersebut sudah digunakan.", "in-use": "Data masih digunakan oleh data lain.", "not-found": "Data tidak ditemukan.", "csrf": "Sesi form berakhir. Muat ulang halaman.", "failed": "Operasi gagal diproses."}[c]
+	return map[string]string{"employee-created": "Karyawan berhasil ditambahkan.", "employee-updated": "Data karyawan berhasil diperbarui.", "employee-deleted": "Karyawan berhasil dihapus.", "profile-created": "Biodata berhasil ditambahkan.", "profile-updated": "Biodata berhasil diperbarui.", "profile-deleted": "Biodata berhasil dihapus.", "assignment-created": "Penempatan berhasil ditambahkan.", "assignment-updated": "Penempatan berhasil diperbarui.", "assignment-deleted": "Penempatan berhasil dihapus.", "reporting-created": "Relasi supervisi berhasil ditambahkan.", "reporting-updated": "Relasi supervisi berhasil diperbarui.", "reporting-deleted": "Relasi supervisi berhasil dihapus.", "invalid": "Data belum lengkap atau periode tidak valid.", "duplicate": "Data aktif atau nomor tersebut sudah digunakan.", "in-use": "Data masih digunakan oleh data lain.", "not-found": "Data tidak ditemukan.", "csrf": "Sesi form berakhir. Muat ulang halaman.", "failed": "Operasi gagal diproses."}[c]
 }

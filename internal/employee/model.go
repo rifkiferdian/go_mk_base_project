@@ -31,6 +31,7 @@ type Assignment struct {
 type ReportingLine struct {
 	ID, EmployeeAssignmentID, SupervisorAssignmentID     uint64
 	EmployeeNumber, EmployeeName, EmployeePosition       string
+	EmployeeDepartment, EmployeeStore                    string
 	SupervisorNumber, SupervisorName, SupervisorPosition string
 	StartedAt, EndedAt                                   string
 	Current                                              bool

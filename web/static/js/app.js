@@ -705,6 +705,7 @@ document.querySelectorAll("[data-access-filter]").forEach((filter) => {
   const extra = filter.querySelector("[data-filter-extra]");
   const department = filter.querySelector("[data-filter-department]");
   const status = filter.querySelector("[data-filter-status]");
+  const supervisor = filter.querySelector("[data-filter-supervisor]");
   const count = filter.querySelector("[data-filter-count]");
   const rows = [...table.querySelectorAll("[data-filter-row]")];
   const empty = table.querySelector("[data-filter-empty]");
@@ -734,6 +735,7 @@ document.querySelectorAll("[data-access-filter]").forEach((filter) => {
   populateFilterOptions(extra, "filterExtra");
   populateFilterOptions(department, "filterDepartment");
   populateFilterOptions(status, "filterStatus");
+  if (supervisor?.matches("select")) populateFilterOptions(supervisor, "filterSupervisor");
 
   const extraDependsOnDepartment = extra?.getAttribute("aria-label") === "Filter jabatan";
   const updateDependentExtra = () => {
@@ -799,13 +801,15 @@ document.querySelectorAll("[data-access-filter]").forEach((filter) => {
     const selectedExtra = extra?.value ?? "";
     const selectedDepartment = department?.value ?? "";
     const selectedStatus = status?.value ?? "";
+    const selectedSupervisor = supervisor?.value.trim().toLowerCase() ?? "";
     const filteredRows = rows.filter((row) => {
       const matchesSearch = (row.dataset.filterSearch ?? "").toLowerCase().includes(query);
       const matchesGuard = !selectedGuard || row.dataset.filterGuard === selectedGuard;
       const matchesExtra = !selectedExtra || row.dataset.filterExtra === selectedExtra;
       const matchesDepartment = !selectedDepartment || row.dataset.filterDepartment === selectedDepartment;
       const matchesStatus = !selectedStatus || row.dataset.filterStatus === selectedStatus;
-      return matchesSearch && matchesGuard && matchesExtra && matchesDepartment && matchesStatus;
+      const matchesSupervisor = !selectedSupervisor || (row.dataset.filterSupervisor ?? "").toLowerCase().includes(selectedSupervisor);
+      return matchesSearch && matchesGuard && matchesExtra && matchesDepartment && matchesStatus && matchesSupervisor;
     });
     const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
     currentPage = Math.min(currentPage, totalPages);
@@ -830,6 +834,7 @@ document.querySelectorAll("[data-access-filter]").forEach((filter) => {
     applyAccessFilter(true);
   });
   status?.addEventListener("change", () => applyAccessFilter(true));
+  supervisor?.addEventListener(supervisor.matches("select") ? "change" : "input", () => applyAccessFilter(true));
   applyAccessFilter();
 });
 

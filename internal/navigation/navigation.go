@@ -43,7 +43,7 @@ var definitions = []definition{
 	{group: "Master Data", parent: "master", key: "job-levels", label: "Tingkatan Jabatan", url: "/master/job-levels", permission: "job_levels.view"},
 	{group: "Master Data", parent: "master", key: "employees", label: "Karyawan", url: "/master/employees", permission: "employees.view"},
 	{group: "Master Data", parent: "master", key: "employee-assignments", label: "Penempatan Karyawan", url: "/master/employee-assignments", permission: "employee_assignments.view"},
-	{group: "Master Data", parent: "master", key: "employee-reporting-lines", label: "Atasan & Bawahan", url: "/master/employee-reporting-lines", permission: "employee_reporting_lines.view"},
+	{group: "Master Data", parent: "master", key: "employee-reporting-lines", label: "Struktur Supervisi", url: "/master/employee-reporting-lines", permission: "employee_reporting_lines.view"},
 	{group: "Pengaturan", parent: "assessment-settings", key: "assessment-aspects", label: "Aspek Penilaian", url: "/master/assessment-aspects", permission: "assessment_aspects.view"},
 	{group: "Pengaturan", parent: "assessment-settings", key: "assessment-criteria", label: "Subaspek Penilaian", url: "/master/assessment-criteria", permission: "assessment_criteria.view"},
 	{group: "Pengaturan", parent: "assessment-settings", key: "assessment-score-rules", label: "Aturan Skor", url: "/master/assessment-score-rules", permission: "assessment_score_rules.view"},

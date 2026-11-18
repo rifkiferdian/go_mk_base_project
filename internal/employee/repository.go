@@ -188,7 +188,7 @@ func (r *Repository) DeleteAssignment(ctx context.Context, id uint64) error {
 }
 
 func (r *Repository) ReportingLines(ctx context.Context) ([]ReportingLine, error) {
-	rows, e := r.db.QueryContext(ctx, `SELECT rl.id,rl.employee_assignment_id,rl.supervisor_assignment_id,e.employee_number,e.name,p.name,se.employee_number,se.name,sp.name,DATE_FORMAT(rl.started_at,'%Y-%m-%d'),COALESCE(DATE_FORMAT(rl.ended_at,'%Y-%m-%d'),''),rl.ended_at IS NULL FROM employee_reporting_lines rl JOIN employee_assignments a ON a.id=rl.employee_assignment_id JOIN employees e ON e.id=a.employee_id JOIN positions p ON p.id=a.position_id JOIN employee_assignments sa ON sa.id=rl.supervisor_assignment_id JOIN employees se ON se.id=sa.employee_id JOIN positions sp ON sp.id=sa.position_id ORDER BY rl.started_at DESC,e.name`)
+	rows, e := r.db.QueryContext(ctx, `SELECT rl.id,rl.employee_assignment_id,rl.supervisor_assignment_id,e.employee_number,e.name,p.name,d.name,s.name,se.employee_number,se.name,sp.name,DATE_FORMAT(rl.started_at,'%Y-%m-%d'),COALESCE(DATE_FORMAT(rl.ended_at,'%Y-%m-%d'),''),rl.ended_at IS NULL FROM employee_reporting_lines rl JOIN employee_assignments a ON a.id=rl.employee_assignment_id JOIN employees e ON e.id=a.employee_id JOIN positions p ON p.id=a.position_id JOIN departments d ON d.id=a.department_id JOIN stores s ON s.id=a.store_id JOIN employee_assignments sa ON sa.id=rl.supervisor_assignment_id JOIN employees se ON se.id=sa.employee_id JOIN positions sp ON sp.id=sa.position_id ORDER BY rl.started_at DESC,e.name`)
 	if e != nil {
 		return nil, e
 	}
@@ -196,7 +196,7 @@ func (r *Repository) ReportingLines(ctx context.Context) ([]ReportingLine, error
 	var out []ReportingLine
 	for rows.Next() {
 		var x ReportingLine
-		if e = rows.Scan(&x.ID, &x.EmployeeAssignmentID, &x.SupervisorAssignmentID, &x.EmployeeNumber, &x.EmployeeName, &x.EmployeePosition, &x.SupervisorNumber, &x.SupervisorName, &x.SupervisorPosition, &x.StartedAt, &x.EndedAt, &x.Current); e != nil {
+		if e = rows.Scan(&x.ID, &x.EmployeeAssignmentID, &x.SupervisorAssignmentID, &x.EmployeeNumber, &x.EmployeeName, &x.EmployeePosition, &x.EmployeeDepartment, &x.EmployeeStore, &x.SupervisorNumber, &x.SupervisorName, &x.SupervisorPosition, &x.StartedAt, &x.EndedAt, &x.Current); e != nil {
 			return nil, e
 		}
 		out = append(out, x)
@@ -205,7 +205,7 @@ func (r *Repository) ReportingLines(ctx context.Context) ([]ReportingLine, error
 }
 func (r *Repository) ReportingLine(ctx context.Context, id uint64) (ReportingLine, error) {
 	var x ReportingLine
-	e := r.db.QueryRowContext(ctx, `SELECT rl.id,rl.employee_assignment_id,rl.supervisor_assignment_id,e.employee_number,e.name,p.name,se.employee_number,se.name,sp.name,DATE_FORMAT(rl.started_at,'%Y-%m-%d'),COALESCE(DATE_FORMAT(rl.ended_at,'%Y-%m-%d'),''),rl.ended_at IS NULL FROM employee_reporting_lines rl JOIN employee_assignments a ON a.id=rl.employee_assignment_id JOIN employees e ON e.id=a.employee_id JOIN positions p ON p.id=a.position_id JOIN employee_assignments sa ON sa.id=rl.supervisor_assignment_id JOIN employees se ON se.id=sa.employee_id JOIN positions sp ON sp.id=sa.position_id WHERE rl.id=?`, id).Scan(&x.ID, &x.EmployeeAssignmentID, &x.SupervisorAssignmentID, &x.EmployeeNumber, &x.EmployeeName, &x.EmployeePosition, &x.SupervisorNumber, &x.SupervisorName, &x.SupervisorPosition, &x.StartedAt, &x.EndedAt, &x.Current)
+	e := r.db.QueryRowContext(ctx, `SELECT rl.id,rl.employee_assignment_id,rl.supervisor_assignment_id,e.employee_number,e.name,p.name,d.name,s.name,se.employee_number,se.name,sp.name,DATE_FORMAT(rl.started_at,'%Y-%m-%d'),COALESCE(DATE_FORMAT(rl.ended_at,'%Y-%m-%d'),''),rl.ended_at IS NULL FROM employee_reporting_lines rl JOIN employee_assignments a ON a.id=rl.employee_assignment_id JOIN employees e ON e.id=a.employee_id JOIN positions p ON p.id=a.position_id JOIN departments d ON d.id=a.department_id JOIN stores s ON s.id=a.store_id JOIN employee_assignments sa ON sa.id=rl.supervisor_assignment_id JOIN employees se ON se.id=sa.employee_id JOIN positions sp ON sp.id=sa.position_id WHERE rl.id=?`, id).Scan(&x.ID, &x.EmployeeAssignmentID, &x.SupervisorAssignmentID, &x.EmployeeNumber, &x.EmployeeName, &x.EmployeePosition, &x.EmployeeDepartment, &x.EmployeeStore, &x.SupervisorNumber, &x.SupervisorName, &x.SupervisorPosition, &x.StartedAt, &x.EndedAt, &x.Current)
 	return x, e
 }
 func (r *Repository) CreateReportingLine(ctx context.Context, x ReportingLineInput) error {
