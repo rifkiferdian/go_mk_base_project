@@ -42,7 +42,6 @@ var definitions = []definition{
 	{group: "Master Data", parent: "master", key: "positions", label: "Jabatan", url: "/master/positions", permission: "positions.view"},
 	{group: "Master Data", parent: "master", key: "job-levels", label: "Tingkatan Jabatan", url: "/master/job-levels", permission: "job_levels.view"},
 	{group: "Master Data", parent: "master", key: "employees", label: "Karyawan", url: "/master/employees", permission: "employees.view"},
-	{group: "Master Data", parent: "master", key: "employee-profiles", label: "Biodata Karyawan", url: "/master/employee-profiles", permission: "employee_profiles.view"},
 	{group: "Master Data", parent: "master", key: "employee-assignments", label: "Penempatan Karyawan", url: "/master/employee-assignments", permission: "employee_assignments.view"},
 	{group: "Master Data", parent: "master", key: "employee-reporting-lines", label: "Atasan & Bawahan", url: "/master/employee-reporting-lines", permission: "employee_reporting_lines.view"},
 	{group: "Pengaturan", parent: "assessment-settings", key: "assessment-aspects", label: "Aspek Penilaian", url: "/master/assessment-aspects", permission: "assessment_aspects.view"},

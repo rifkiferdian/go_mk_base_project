@@ -27,6 +27,21 @@ func (h *Handler) Employees(c *gin.Context) {
 		h.fail(c, e)
 		return
 	}
+	positions, e := h.service.PositionOptions(c)
+	if e != nil {
+		h.fail(c, e)
+		return
+	}
+	departments, e := h.service.DepartmentOptions(c)
+	if e != nil {
+		h.fail(c, e)
+		return
+	}
+	stores, e := h.service.StoreOptions(c)
+	if e != nil {
+		h.fail(c, e)
+		return
+	}
 	active, inactive, assigned := 0, 0, 0
 	for _, x := range items {
 		if x.Status == "active" {
@@ -38,7 +53,7 @@ func (h *Handler) Employees(c *gin.Context) {
 			assigned++
 		}
 	}
-	h.render(c, "employee/employees.html", "employees", gin.H{"Title": "Karyawan", "Employees": items, "EmployeeCount": len(items), "ActiveCount": active, "InactiveCount": inactive, "AssignedCount": assigned})
+	h.render(c, "employee/employees.html", "employees", gin.H{"Title": "Karyawan", "Employees": items, "Positions": positions, "Departments": departments, "Stores": stores, "EmployeeCount": len(items), "ActiveCount": active, "InactiveCount": inactive, "AssignedCount": assigned})
 }
 func (h *Handler) CreateEmployee(c *gin.Context) {
 	if !h.csrf(c, "employees") {
@@ -69,7 +84,19 @@ func (h *Handler) DeleteEmployee(c *gin.Context) {
 	h.result(c, "employees", h.service.DeleteEmployee(c, id), "employee-deleted")
 }
 func employeeInput(c *gin.Context) EmployeeInput {
-	return EmployeeInput{c.PostForm("employee_number"), c.PostForm("name"), c.PostForm("email"), c.PostForm("phone"), c.PostForm("status")}
+	x := EmployeeInput{
+		EmployeeNumber: c.PostForm("employee_number"), Name: c.PostForm("name"), Email: c.PostForm("email"), Phone: c.PostForm("phone"), Status: c.PostForm("status"),
+		BirthPlace: c.PostForm("birth_place"), BirthDate: c.PostForm("birth_date"), Gender: c.PostForm("gender"), Address: c.PostForm("address"),
+		JoinedDate: c.PostForm("joined_date"), EmploymentEndedAt: c.PostForm("employment_ended_at"), EmploymentStatus: c.PostForm("employment_status"),
+		EmergencyContactName: c.PostForm("emergency_contact_name"), EmergencyContactPhone: c.PostForm("emergency_contact_phone"), EmergencyContactRelationship: c.PostForm("emergency_contact_relationship"),
+	}
+	if c.PostForm("position_id") != "" {
+		x.PositionID, _ = strconv.ParseUint(c.PostForm("position_id"), 10, 64)
+		x.DepartmentID, _ = strconv.ParseUint(c.PostForm("department_id"), 10, 64)
+		x.StoreID, _ = strconv.ParseUint(c.PostForm("store_id"), 10, 64)
+		x.AssignmentStartedAt = c.PostForm("assignment_started_at")
+	}
+	return x
 }
 
 func (h *Handler) Profiles(c *gin.Context) {

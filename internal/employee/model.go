@@ -3,12 +3,15 @@ package employee
 import "database/sql"
 
 type Employee struct {
-	ID                                                        uint64
-	EmployeeNumber, Name, Email, Phone, Status                string
-	EmploymentStatus, PositionName, DepartmentName, StoreName string
-	AssignmentStartedAt, AssignmentEndedAt                    string
-	HasProfile, HasCurrentAssignment, HasUser                 bool
-	AssignmentCount, SubordinateCount                         int
+	ID, CurrentAssignmentID, PositionID, DepartmentID, StoreID uint64
+	EmployeeNumber, Name, Email, Phone, Status                 string
+	EmploymentStatus, PositionName, DepartmentName, StoreName  string
+	AssignmentStartedAt, AssignmentEndedAt, EmploymentEndedAt  string
+	BirthPlace, BirthDate, Gender, Address, JoinedDate         string
+	EmergencyContactName, EmergencyContactPhone                string
+	EmergencyContactRelationship                               string
+	HasProfile, HasCurrentAssignment, HasUser                  bool
+	AssignmentCount, SubordinateCount                          int
 }
 
 type Profile struct {
@@ -39,7 +42,14 @@ type Option struct {
 	Label        string
 }
 
-type EmployeeInput struct{ EmployeeNumber, Name, Email, Phone, Status string }
+type EmployeeInput struct {
+	EmployeeNumber, Name, Email, Phone, Status                                string
+	BirthPlace, BirthDate, Gender, Address, JoinedDate, EmploymentEndedAt     string
+	EmploymentStatus                                                          string
+	EmergencyContactName, EmergencyContactPhone, EmergencyContactRelationship string
+	PositionID, DepartmentID, StoreID                                         uint64
+	AssignmentStartedAt                                                       string
+}
 type ProfileInput struct {
 	EmployeeID                                                                              uint64
 	BirthPlace, BirthDate, Gender, Address, JoinedDate, EmploymentEndedAt, EmploymentStatus string

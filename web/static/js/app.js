@@ -13,6 +13,33 @@ document.querySelectorAll("[data-password-toggle]").forEach((button) => {
   });
 });
 
+document.querySelectorAll('select[name="employment_status"]').forEach((select) => {
+  const statuses = [
+    ["daily_worker", "Harian Lepas (HL)"],
+    ["post_retirement_daily_worker", "Harian Lepas Pasca Pensiun (HLPP)"],
+  ];
+  statuses.forEach(([value, label]) => {
+    if (![...select.options].some((option) => option.value === value)) select.add(new Option(label, value));
+  });
+});
+
+const employmentStatusLabels = {
+  trainee: "Trainee",
+  probation: "Probation",
+  contract: "Kontrak",
+  permanent: "Tetap",
+  daily_worker: "HL",
+  post_retirement_daily_worker: "HLPP",
+};
+
+document.querySelectorAll("[data-filter-row] [data-edit-employee]").forEach((button) => {
+  const details = document.querySelector(`[data-employee-details] [data-employee-id="${button.dataset.id}"]`);
+  const badge = button.closest("tr")?.querySelector("td:nth-child(5) span");
+  if (!badge || !details) return;
+  const employmentStatus = details.dataset.employmentStatus ?? "";
+  badge.textContent = (employmentStatusLabels[employmentStatus] ?? employmentStatus) || "Belum diisi";
+});
+
 const dashboardSidebar = document.getElementById("dashboardSidebar");
 const sidebarBackdrop = document.getElementById("sidebarBackdrop");
 
@@ -336,6 +363,14 @@ document.querySelectorAll("[data-edit-employee]").forEach((button) => {
     form.elements.email.value = button.dataset.email ?? "";
     form.elements.phone.value = button.dataset.phone ?? "";
     form.elements.status.value = button.dataset.status ?? "active";
+    const details = document.querySelector(`[data-employee-details] [data-employee-id="${button.dataset.id}"]`);
+    const values = { birth_place: "birthPlace", birth_date: "birthDate", gender: "gender", address: "address", joined_date: "joinedDate", employment_ended_at: "employmentEndedAt", employment_status: "employmentStatus", emergency_contact_name: "emergencyName", emergency_contact_phone: "emergencyPhone", emergency_contact_relationship: "emergencyRelationship" };
+    Object.entries(values).forEach(([field, data]) => { form.elements[field].value = details?.dataset[data] ?? ""; });
+    form.elements.department_id.value = details?.dataset.departmentId ?? "";
+    form.elements.department_id.dispatchEvent(new Event("change", { bubbles: true }));
+    form.elements.position_id.value = details?.dataset.positionId ?? "";
+    form.elements.store_id.value = details?.dataset.storeId ?? "";
+    form.elements.assignment_started_at.value = details?.dataset.assignmentStartedAt ?? "";
     dialog.showModal();
   });
 });
@@ -371,7 +406,18 @@ document.querySelectorAll("[data-assignment-fields]").forEach((fields) => {
   const syncDepartment = () => {
     department.value = position.selectedOptions[0]?.dataset.departmentId ?? "";
   };
+  const filterPositions = () => {
+    const departmentID = department.value;
+    [...position.options].slice(1).forEach((option) => {
+      const visible = !departmentID || option.dataset.departmentId === departmentID;
+      option.hidden = !visible;
+      option.disabled = !visible;
+    });
+    if (position.value && position.selectedOptions[0]?.dataset.departmentId !== departmentID) position.value = "";
+  };
   position.addEventListener("change", syncDepartment);
+  department.addEventListener("change", filterPositions);
+  filterPositions();
 });
 
 document.querySelectorAll("[data-edit-reporting]").forEach((button) => {
@@ -628,6 +674,28 @@ document.querySelectorAll("[data-edit-role], [data-edit-permission], [data-edit-
   button.title = "Edit";
 });
 
+if (["/master/employees", "/master/employee-assignments"].includes(window.location.pathname)) {
+  const table = document.querySelector("[data-filter-table] table");
+  const heading = table?.querySelector("thead tr");
+  if (table && heading && !heading.querySelector("[data-generated-number-heading]")) {
+    const th = document.createElement("th");
+    th.dataset.generatedNumberHeading = "";
+    th.className = "w-16 px-5 py-3 text-center";
+    th.textContent = "No.";
+    heading.prepend(th);
+    table.querySelectorAll("[data-filter-row]").forEach((row) => {
+      const td = document.createElement("td");
+      td.className = "px-5 py-4 text-center";
+      td.innerHTML = '<span data-row-number class="inline-grid size-7 place-items-center rounded-lg bg-slate-100 text-xs font-bold text-slate-600"></span>';
+      row.prepend(td);
+    });
+    table.querySelectorAll("td[colspan]").forEach((cell) => {
+      const colspan = Number.parseInt(cell.getAttribute("colspan") ?? "", 10);
+      if (Number.isFinite(colspan)) cell.setAttribute("colspan", String(colspan + 1));
+    });
+  }
+}
+
 document.querySelectorAll("[data-access-filter]").forEach((filter) => {
   const table = filter.nextElementSibling;
   if (!table?.matches("[data-filter-table]")) return;
@@ -636,6 +704,7 @@ document.querySelectorAll("[data-access-filter]").forEach((filter) => {
   const guard = filter.querySelector("[data-filter-guard]");
   const extra = filter.querySelector("[data-filter-extra]");
   const department = filter.querySelector("[data-filter-department]");
+  const status = filter.querySelector("[data-filter-status]");
   const count = filter.querySelector("[data-filter-count]");
   const rows = [...table.querySelectorAll("[data-filter-row]")];
   const empty = table.querySelector("[data-filter-empty]");
@@ -654,6 +723,34 @@ document.querySelectorAll("[data-access-filter]").forEach((filter) => {
   [...new Set(rows.map((row) => row.dataset.filterGuard).filter((value) => value && !existingOptions.has(value)))]
     .sort((left, right) => left.localeCompare(right))
     .forEach((value) => guard?.add(new Option(value, value)));
+
+  const populateFilterOptions = (select, dataKey) => {
+    if (!select) return;
+    const existing = new Set([...select.options].map((option) => option.value));
+    [...new Set(rows.map((row) => row.dataset[dataKey]).filter((value) => value && !existing.has(value)))]
+      .sort((left, right) => left.localeCompare(right))
+      .forEach((value) => select.add(new Option(value, value)));
+  };
+  populateFilterOptions(extra, "filterExtra");
+  populateFilterOptions(department, "filterDepartment");
+  populateFilterOptions(status, "filterStatus");
+
+  const extraDependsOnDepartment = extra?.getAttribute("aria-label") === "Filter jabatan";
+  const updateDependentExtra = () => {
+    if (!extraDependsOnDepartment || !extra) return;
+    const selectedDepartment = department?.value ?? "";
+    const available = new Set(rows
+      .filter((row) => !selectedDepartment || row.dataset.filterDepartment === selectedDepartment)
+      .map((row) => row.dataset.filterExtra)
+      .filter(Boolean));
+    [...extra.options].slice(1).forEach((option) => {
+      const visible = !selectedDepartment || available.has(option.value);
+      option.hidden = !visible;
+      option.disabled = !visible;
+    });
+    if (extra.value && !available.has(extra.value)) extra.value = "";
+  };
+  updateDependentExtra();
 
   function renderPagination(totalItems, totalPages) {
     const start = totalItems === 0 ? 0 : ((currentPage - 1) * pageSize) + 1;
@@ -701,12 +798,14 @@ document.querySelectorAll("[data-access-filter]").forEach((filter) => {
     const selectedGuard = guard?.value ?? "";
     const selectedExtra = extra?.value ?? "";
     const selectedDepartment = department?.value ?? "";
+    const selectedStatus = status?.value ?? "";
     const filteredRows = rows.filter((row) => {
       const matchesSearch = (row.dataset.filterSearch ?? "").toLowerCase().includes(query);
       const matchesGuard = !selectedGuard || row.dataset.filterGuard === selectedGuard;
       const matchesExtra = !selectedExtra || row.dataset.filterExtra === selectedExtra;
       const matchesDepartment = !selectedDepartment || row.dataset.filterDepartment === selectedDepartment;
-      return matchesSearch && matchesGuard && matchesExtra && matchesDepartment;
+      const matchesStatus = !selectedStatus || row.dataset.filterStatus === selectedStatus;
+      return matchesSearch && matchesGuard && matchesExtra && matchesDepartment && matchesStatus;
     });
     const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
     currentPage = Math.min(currentPage, totalPages);
@@ -726,7 +825,11 @@ document.querySelectorAll("[data-access-filter]").forEach((filter) => {
   search?.addEventListener("input", () => applyAccessFilter(true));
   guard?.addEventListener("change", () => applyAccessFilter(true));
   extra?.addEventListener("change", () => applyAccessFilter(true));
-  department?.addEventListener("change", () => applyAccessFilter(true));
+  department?.addEventListener("change", () => {
+    updateDependentExtra();
+    applyAccessFilter(true);
+  });
+  status?.addEventListener("change", () => applyAccessFilter(true));
   applyAccessFilter();
 });
 

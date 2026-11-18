@@ -49,7 +49,7 @@ func (s *Service) AssignmentOptions(c context.Context) ([]Option, error) {
 
 func (s *Service) CreateEmployee(c context.Context, x EmployeeInput) error {
 	x = cleanEmployee(x)
-	if invalidEmployee(x) {
+	if invalidEmployee(x) || !s.validEmployeeAssignment(c, x) {
 		return ErrInvalid
 	}
 	return dbErr(s.repository.CreateEmployee(c, x))
@@ -59,10 +59,20 @@ func (s *Service) UpdateEmployee(c context.Context, id uint64, x EmployeeInput) 
 		return e
 	}
 	x = cleanEmployee(x)
-	if invalidEmployee(x) {
+	if invalidEmployee(x) || !s.validEmployeeAssignment(c, x) {
 		return ErrInvalid
 	}
 	return dbErr(s.repository.UpdateEmployee(c, id, x))
+}
+func (s *Service) validEmployeeAssignment(c context.Context, x EmployeeInput) bool {
+	if x.PositionID == 0 && x.DepartmentID == 0 && x.StoreID == 0 && x.AssignmentStartedAt == "" {
+		return true
+	}
+	if x.PositionID == 0 || x.DepartmentID == 0 || x.StoreID == 0 || !validDate(x.AssignmentStartedAt, false) {
+		return false
+	}
+	matches, err := s.repository.PositionMatchesDepartment(c, x.PositionID, x.DepartmentID)
+	return err == nil && matches
 }
 func (s *Service) DeleteEmployee(c context.Context, id uint64) error {
 	x, e := s.repository.Employee(c, id)
@@ -80,6 +90,13 @@ func cleanEmployee(x EmployeeInput) EmployeeInput {
 	x.Email = strings.ToLower(strings.TrimSpace(x.Email))
 	x.Phone = strings.TrimSpace(x.Phone)
 	x.Status = strings.TrimSpace(x.Status)
+	x.BirthPlace = strings.TrimSpace(x.BirthPlace)
+	x.Gender = strings.TrimSpace(x.Gender)
+	x.Address = strings.TrimSpace(x.Address)
+	x.EmploymentStatus = strings.TrimSpace(x.EmploymentStatus)
+	x.EmergencyContactName = strings.TrimSpace(x.EmergencyContactName)
+	x.EmergencyContactPhone = strings.TrimSpace(x.EmergencyContactPhone)
+	x.EmergencyContactRelationship = strings.TrimSpace(x.EmergencyContactRelationship)
 	return x
 }
 func invalidEmployee(x EmployeeInput) bool {
@@ -90,7 +107,13 @@ func invalidEmployee(x EmployeeInput) bool {
 		_, e := mail.ParseAddress(x.Email)
 		return e != nil || utf8.RuneCountInString(x.Email) > 191
 	}
-	return utf8.RuneCountInString(x.Phone) > 30
+	if utf8.RuneCountInString(x.Phone) > 30 || !oneOf(x.EmploymentStatus, "trainee", "probation", "contract", "permanent", "daily_worker", "post_retirement_daily_worker") || !oneOf(x.Gender, "", "male", "female") {
+		return true
+	}
+	if !validDate(x.BirthDate, true) || !validDate(x.JoinedDate, true) || !validDate(x.EmploymentEndedAt, true) || (x.EmploymentEndedAt != "" && (x.JoinedDate == "" || x.EmploymentEndedAt < x.JoinedDate)) {
+		return true
+	}
+	return utf8.RuneCountInString(x.BirthPlace) > 100 || utf8.RuneCountInString(x.EmergencyContactName) > 150 || utf8.RuneCountInString(x.EmergencyContactPhone) > 30 || utf8.RuneCountInString(x.EmergencyContactRelationship) > 50
 }
 
 func (s *Service) CreateProfile(c context.Context, x ProfileInput) error {
@@ -126,7 +149,7 @@ func cleanProfile(x ProfileInput) ProfileInput {
 	return x
 }
 func invalidProfile(x ProfileInput) bool {
-	if x.EmployeeID == 0 || !oneOf(x.EmploymentStatus, "trainee", "probation", "contract", "permanent") || (!oneOf(x.Gender, "", "male", "female")) {
+	if x.EmployeeID == 0 || !oneOf(x.EmploymentStatus, "trainee", "probation", "contract", "permanent", "daily_worker", "post_retirement_daily_worker") || (!oneOf(x.Gender, "", "male", "female")) {
 		return true
 	}
 	return !validDate(x.BirthDate, true) || !validDate(x.JoinedDate, true) || !validDate(x.EmploymentEndedAt, true) || (x.EmploymentEndedAt != "" && (x.JoinedDate == "" || x.EmploymentEndedAt < x.JoinedDate))

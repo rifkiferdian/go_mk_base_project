@@ -2,6 +2,21 @@
 @source "../../templates";
 @source "../../static/js";
 
+body:has(dialog[open]) {
+  overflow: hidden;
+}
+
+#createEmployeeDialog form,
+#editEmployeeDialog form {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+#createEmployeeDialog form::-webkit-scrollbar,
+#editEmployeeDialog form::-webkit-scrollbar {
+  display: none;
+}
+
 /* Font Awesome uses font glyphs, so match the former SVG size utilities. */
 .fa-solid.size-2 { font-size: .5rem; }
 .fa-solid.size-4 { font-size: 1rem; }
