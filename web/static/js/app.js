@@ -1012,3 +1012,12 @@ if (["/master/assessment-criteria", "/master/assessment-score-rules"].includes(w
     if (label?.firstChild?.nodeType === Node.TEXT_NODE) label.firstChild.textContent = "Jabatan / Periode";
   });
 }
+
+if (window.location.pathname === "/placement-change-requests") {
+  document.querySelector("table")?.closest("section")?.classList.add("hidden", "md:block");
+  document.querySelectorAll('select[name="employee_id"] option').forEach((option) => {
+    if (option.textContent.trim() === "Pilih bawahan") option.textContent = "Pilih karyawan";
+  });
+}
+
+if (window.location.pathname === "/my-team") document.querySelector("[data-filter-count]")?.classList.add("hidden");

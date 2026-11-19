@@ -23,9 +23,11 @@ import (
 	"mksiaga/internal/httperror"
 	"mksiaga/internal/navigation"
 	"mksiaga/internal/organization"
+	"mksiaga/internal/placementrequest"
 	"mksiaga/internal/profile"
 	"mksiaga/internal/sessionmanagement"
 	storeManagement "mksiaga/internal/store"
+	"mksiaga/internal/team"
 	"mksiaga/internal/traineeassessment"
 	userManagement "mksiaga/internal/user"
 	"mksiaga/internal/view"
@@ -94,10 +96,17 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 		assessmentHandler := traineeassessment.NewHandler(cfg.AppName, traineeassessment.NewService(traineeassessment.NewRepository(db)), navigationService)
 		assessmentReportHandler := assessmentreport.NewHandler(cfg.AppName, assessmentReportService, navigationService)
 		profileHandler := profile.NewHandler(cfg.AppName, profile.NewService(profile.NewRepository(db)), navigationService)
+		placementRequestHandler := placementrequest.NewHandler(cfg.AppName, placementrequest.NewService(placementrequest.NewRepository(db)), navigationService)
 		storeHandler := storeManagement.NewHandler(cfg.AppName, storeManagement.NewService(storeManagement.NewRepository(db)), navigationService)
 		sessionHandler := sessionmanagement.NewHandler(cfg.AppName, sessionmanagement.NewService(sessionmanagement.NewRepository(db)), navigationService)
 		userHandler := userManagement.NewHandler(cfg.AppName, userManagement.NewService(userManagement.NewRepository(db)), navigationService)
+		teamHandler := team.NewHandler(cfg.AppName, team.NewRepository(db), navigationService)
 		authorized.GET("/profile", profileHandler.Index)
+		authorized.GET("/placement-change-requests", auth.RequirePermission(db, "placement_change_requests.view"), placementRequestHandler.Index)
+		authorized.POST("/placement-change-requests", auth.RequirePermission(db, "placement_change_requests.create"), placementRequestHandler.Create)
+		authorized.POST("/placement-change-requests/:id/approve", auth.RequirePermission(db, "placement_change_requests.approve"), placementRequestHandler.Approve)
+		authorized.POST("/placement-change-requests/:id/reject", auth.RequirePermission(db, "placement_change_requests.approve"), placementRequestHandler.Reject)
+		authorized.GET("/my-team", auth.RequirePermission(db, "team.view"), teamHandler.Index)
 		authorized.POST("/profile/name", profileHandler.UpdateName)
 		authorized.POST("/profile/password", profileHandler.UpdatePassword)
 		authorized.GET("/assessments", auth.RequirePermission(db, "trainee_assessments.view"), assessmentHandler.Index)
