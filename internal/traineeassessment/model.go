@@ -19,7 +19,7 @@ type AssessmentDetail struct {
 	Score                            int
 }
 type Trainee struct {
-	DepartmentID                                                  uint64
+	DepartmentID, OrganizationDepartmentID                        uint64
 	EmployeeID, AssignmentID, StoreID                             uint64
 	EmployeeNumber, Name, PositionName, DepartmentName, StoreName string
 }

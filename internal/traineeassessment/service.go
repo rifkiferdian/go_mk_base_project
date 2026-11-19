@@ -137,7 +137,7 @@ func (s *Service) validate(ctx context.Context, x *Input) error {
 	}
 	var rubricCount int
 	var rubricID uint64
-	if err := s.repository.db.QueryRowContext(ctx, `SELECT COUNT(*),COALESCE(MIN(id),0) FROM trainee_assessment_rubrics WHERE department_id=? AND is_active=1 AND month_from<=? AND (month_to IS NULL OR month_to>=?)`, x.DepartmentID, x.TrainingMonth, x.TrainingMonth).Scan(&rubricCount, &rubricID); err != nil {
+	if err := s.repository.db.QueryRowContext(ctx, `SELECT COUNT(*),COALESCE(MIN(id),0) FROM trainee_assessment_rubrics WHERE position_id=? AND is_active=1 AND month_from<=? AND (month_to IS NULL OR month_to>=?)`, x.DepartmentID, x.TrainingMonth, x.TrainingMonth).Scan(&rubricCount, &rubricID); err != nil {
 		return err
 	}
 	if rubricCount != 1 {

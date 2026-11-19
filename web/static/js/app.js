@@ -976,3 +976,27 @@ if (assessmentCategoryNodes.length) {
     }));
   }
 }
+
+if (["/master/assessment-criteria", "/master/assessment-score-rules"].includes(window.location.pathname)) {
+  document.querySelectorAll("th, label, option, [aria-label]").forEach((element) => {
+    if (element.childElementCount === 0 && element.textContent) {
+      element.textContent = element.textContent
+        .replaceAll("Semua bagian", "Semua jabatan")
+        .replaceAll("Pilih bagian", "Pilih jabatan")
+        .replaceAll("Pilih bagian dan periode", "Pilih jabatan dan periode")
+        .replaceAll("Pilih bagian, periode, dan aspek", "Pilih jabatan, periode, dan aspek")
+        .replaceAll("Bagian / Periode", "Jabatan / Periode")
+        .replace(/^Bagian$/, "Jabatan");
+    }
+    const label = element.getAttribute("aria-label");
+    if (label) element.setAttribute("aria-label", label.replaceAll("bagian", "jabatan").replaceAll("Bagian", "Jabatan"));
+  });
+  document.querySelectorAll('select[name="department_id"]').forEach((select) => {
+    const label = select.closest("label");
+    if (label?.firstChild?.nodeType === Node.TEXT_NODE) label.firstChild.textContent = "Jabatan";
+  });
+  document.querySelectorAll("[data-rule-rubric]").forEach((select) => {
+    const label = select.closest("label");
+    if (label?.firstChild?.nodeType === Node.TEXT_NODE) label.firstChild.textContent = "Jabatan / Periode";
+  });
+}

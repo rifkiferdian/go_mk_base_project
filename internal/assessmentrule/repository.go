@@ -10,7 +10,7 @@ type Repository struct{ db *sql.DB }
 
 func NewRepository(db *sql.DB) *Repository { return &Repository{db: db} }
 
-const ruleSelect = `SELECT r.rubric_id,b.name,d.name,CASE WHEN b.month_to IS NULL THEN CONCAT('Bulan ',b.month_from,'+') ELSE CONCAT('Bulan ',b.month_from,'–',b.month_to) END,r.criterion_id,c.code,c.description,a.id,a.name,r.score,r.finding_min,r.finding_max,r.description FROM trainee_assessment_score_rules r JOIN trainee_assessment_criteria c ON c.id=r.criterion_id JOIN trainee_assessment_aspects a ON a.id=c.aspect_id JOIN trainee_assessment_rubrics b ON b.id=r.rubric_id JOIN departments d ON d.id=b.department_id`
+const ruleSelect = `SELECT r.rubric_id,b.name,p.name,CASE WHEN b.month_to IS NULL THEN CONCAT('Bulan ',b.month_from,'+') ELSE CONCAT('Bulan ',b.month_from,'–',b.month_to) END,r.criterion_id,c.code,c.description,a.id,a.name,r.score,r.finding_min,r.finding_max,r.description FROM trainee_assessment_score_rules r JOIN trainee_assessment_criteria c ON c.id=r.criterion_id JOIN trainee_assessment_aspects a ON a.id=c.aspect_id JOIN trainee_assessment_rubrics b ON b.id=r.rubric_id JOIN positions p ON p.id=b.position_id`
 
 func scanRule(scanner interface{ Scan(...any) error }) (Rule, error) {
 	var x Rule
@@ -23,7 +23,7 @@ func scanRule(scanner interface{ Scan(...any) error }) (Rule, error) {
 	return x, err
 }
 func (r *Repository) Rules(ctx context.Context) ([]Rule, error) {
-	rows, err := r.db.QueryContext(ctx, ruleSelect+` ORDER BY d.name,b.month_from,a.sort_order,c.sort_order,r.score DESC`)
+	rows, err := r.db.QueryContext(ctx, ruleSelect+` ORDER BY p.name,b.month_from,a.sort_order,c.sort_order,r.score DESC`)
 	if err != nil {
 		return nil, fmt.Errorf("list assessment score rules: %w", err)
 	}
@@ -39,7 +39,7 @@ func (r *Repository) Rules(ctx context.Context) ([]Rule, error) {
 	return out, rows.Err()
 }
 func (r *Repository) Criteria(ctx context.Context) ([]CriterionOption, error) {
-	rows, err := r.db.QueryContext(ctx, `SELECT c.id,a.id,a.name,c.code,c.description,COUNT(r.score),5*(SELECT COUNT(*) FROM trainee_assessment_rubrics rb WHERE rb.department_id=c.department_id AND rb.is_active=1),c.department_id,d.name FROM trainee_assessment_criteria c JOIN trainee_assessment_aspects a ON a.id=c.aspect_id JOIN departments d ON d.id=c.department_id LEFT JOIN trainee_assessment_score_rules r ON r.criterion_id=c.id GROUP BY c.id,a.id,a.name,c.code,c.description,c.department_id,d.name,a.sort_order,c.sort_order ORDER BY d.name,a.sort_order,c.sort_order,c.id`)
+	rows, err := r.db.QueryContext(ctx, `SELECT c.id,a.id,a.name,c.code,c.description,COUNT(r.score),5*(SELECT COUNT(*) FROM trainee_assessment_rubrics rb WHERE rb.position_id=c.position_id AND rb.is_active=1),c.position_id,p.name FROM trainee_assessment_criteria c JOIN trainee_assessment_aspects a ON a.id=c.aspect_id JOIN positions p ON p.id=c.position_id LEFT JOIN trainee_assessment_score_rules r ON r.criterion_id=c.id GROUP BY c.id,a.id,a.name,c.code,c.description,c.position_id,p.name,a.sort_order,c.sort_order ORDER BY p.name,a.sort_order,c.sort_order,c.id`)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func (r *Repository) Criteria(ctx context.Context) ([]CriterionOption, error) {
 	return out, rows.Err()
 }
 func (r *Repository) Rubrics(ctx context.Context) ([]RubricOption, error) {
-	rows, err := r.db.QueryContext(ctx, `SELECT r.id,r.department_id,r.name,d.name,CASE WHEN r.month_to IS NULL THEN CONCAT('Bulan ',r.month_from,'+') ELSE CONCAT('Bulan ',r.month_from,'–',r.month_to) END FROM trainee_assessment_rubrics r JOIN departments d ON d.id=r.department_id WHERE r.is_active=1 ORDER BY d.name,r.month_from`)
+	rows, err := r.db.QueryContext(ctx, `SELECT r.id,r.position_id,r.name,p.name,CASE WHEN r.month_to IS NULL THEN CONCAT('Bulan ',r.month_from,'+') ELSE CONCAT('Bulan ',r.month_from,'–',r.month_to) END FROM trainee_assessment_rubrics r JOIN positions p ON p.id=r.position_id WHERE r.is_active=1 ORDER BY p.name,r.month_from`)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +75,7 @@ func (r *Repository) Rule(ctx context.Context, key Key) (Rule, error) {
 }
 func (r *Repository) CriterionMatchesRubric(ctx context.Context, criterionID, rubricID uint64) (bool, error) {
 	var ok bool
-	err := r.db.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM trainee_assessment_criteria c JOIN trainee_assessment_rubrics b ON b.department_id=c.department_id WHERE c.id=? AND b.id=? AND b.is_active=1)`, criterionID, rubricID).Scan(&ok)
+	err := r.db.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM trainee_assessment_criteria c JOIN trainee_assessment_rubrics b ON b.position_id=c.position_id WHERE c.id=? AND b.id=? AND b.is_active=1)`, criterionID, rubricID).Scan(&ok)
 	return ok, err
 }
 func (r *Repository) RulesForCriterion(ctx context.Context, rubricID, criterionID uint64) ([]Rule, error) {
