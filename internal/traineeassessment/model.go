@@ -22,6 +22,7 @@ type Trainee struct {
 	DepartmentID, OrganizationDepartmentID                        uint64
 	EmployeeID, AssignmentID, StoreID                             uint64
 	EmployeeNumber, Name, PositionName, DepartmentName, StoreName string
+	StartedAt                                                     string
 }
 type Rule struct {
 	Score        int

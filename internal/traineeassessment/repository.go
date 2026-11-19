@@ -89,7 +89,7 @@ func (r *Repository) AssessmentYears(ctx context.Context, userID uint64, all boo
 	return years, rows.Err()
 }
 func (r *Repository) Trainees(ctx context.Context, userID uint64, all bool) ([]Trainee, error) {
-	q := `SELECT e.id,a.id,a.store_id,e.employee_number,e.name,p.name,d.name,s.name,d.id,p.id FROM employees e JOIN employee_profiles ep ON ep.employee_id=e.id AND ep.employment_status='trainee' JOIN employee_assignments a ON a.employee_id=e.id AND a.ended_at IS NULL JOIN positions p ON p.id=a.position_id JOIN departments d ON d.id=a.department_id JOIN stores s ON s.id=a.store_id`
+	q := `SELECT e.id,a.id,a.store_id,e.employee_number,e.name,p.name,d.name,s.name,d.id,p.id,DATE_FORMAT(a.started_at,'%Y-%m-%d') FROM employees e JOIN employee_profiles ep ON ep.employee_id=e.id AND ep.employment_status='trainee' JOIN employee_assignments a ON a.employee_id=e.id AND a.ended_at IS NULL JOIN positions p ON p.id=a.position_id JOIN departments d ON d.id=a.department_id JOIN stores s ON s.id=a.store_id`
 	args := []any{}
 	if !all {
 		q += ` JOIN users au ON au.id=? JOIN employee_assignments sa ON sa.employee_id=au.employee_id AND sa.ended_at IS NULL JOIN employee_reporting_lines rl ON rl.employee_assignment_id=a.id AND rl.supervisor_assignment_id=sa.id AND rl.ended_at IS NULL`
@@ -104,7 +104,7 @@ func (r *Repository) Trainees(ctx context.Context, userID uint64, all bool) ([]T
 	var out []Trainee
 	for rows.Next() {
 		var x Trainee
-		if e = rows.Scan(&x.EmployeeID, &x.AssignmentID, &x.StoreID, &x.EmployeeNumber, &x.Name, &x.PositionName, &x.DepartmentName, &x.StoreName, &x.OrganizationDepartmentID, &x.DepartmentID); e != nil {
+		if e = rows.Scan(&x.EmployeeID, &x.AssignmentID, &x.StoreID, &x.EmployeeNumber, &x.Name, &x.PositionName, &x.DepartmentName, &x.StoreName, &x.OrganizationDepartmentID, &x.DepartmentID, &x.StartedAt); e != nil {
 			return nil, e
 		}
 		out = append(out, x)
@@ -276,7 +276,7 @@ func (r *Repository) save(ctx context.Context, id, userID uint64, assessorName s
 		if d.Score > 0 {
 			score = d.Score
 		}
-		res, insertErr := tx.ExecContext(ctx, `INSERT INTO trainee_assessment_details(assessment_id,criterion_id,aspect_name,criterion_description,weight,score,criterion_code,score_rule_description,finding_min,finding_max) SELECT ?,c.id,a.name,c.description,c.weight,?,c.code,s.description,s.finding_min,s.finding_max FROM trainee_assessment_criteria c JOIN trainee_assessment_aspects a ON a.id=c.aspect_id JOIN trainee_assessment_criterion_positions cp ON cp.criterion_id=c.id JOIN trainee_assessment_rubrics b ON b.position_id=cp.position_id LEFT JOIN trainee_assessment_score_rules s ON s.criterion_id=c.id AND s.rubric_id=b.id AND s.score=? WHERE c.id=? AND b.id=? AND cp.position_id=? AND b.is_active=1 AND b.month_from<=? AND (b.month_to IS NULL OR b.month_to>=?) AND (? IS NULL OR s.score IS NOT NULL)`, id, score, score, d.CriterionID, input.RubricID, input.DepartmentID, input.TrainingMonth, input.TrainingMonth, score)
+		res, insertErr := tx.ExecContext(ctx, `INSERT INTO trainee_assessment_details(assessment_id,criterion_id,aspect_name,criterion_description,weight,score,criterion_code,score_rule_description,finding_min,finding_max) SELECT ?,c.id,a.name,c.description,c.weight,?,c.code,s.description,s.finding_min,s.finding_max FROM trainee_assessment_criteria c JOIN trainee_assessment_aspects a ON a.id=c.aspect_id JOIN trainee_assessment_criterion_positions cp ON cp.criterion_id=c.id JOIN trainee_assessment_rubrics b ON b.position_id=cp.position_id LEFT JOIN trainee_assessment_score_rules s ON s.criterion_id=c.id AND s.rubric_id=b.id AND s.score=? WHERE c.id=? AND b.id=? AND cp.position_id=? AND b.is_active=1 AND (? IS NULL OR s.score IS NOT NULL)`, id, score, score, d.CriterionID, input.RubricID, input.DepartmentID, score)
 		e = insertErr
 		if e != nil {
 			return 0, e

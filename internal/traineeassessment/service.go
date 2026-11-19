@@ -135,13 +135,12 @@ func (s *Service) validate(ctx context.Context, x *Input) error {
 	if x.TraineeEmployeeID == 0 || x.TrainingMonth == 0 || x.TrainingMonth > 24 || !validDate(x.AssessmentDate) || !oneOf(x.Status, "draft", "final") {
 		return ErrInvalid
 	}
-	var rubricCount int
 	var rubricID uint64
-	if err := s.repository.db.QueryRowContext(ctx, `SELECT COUNT(*),COALESCE(MIN(id),0) FROM trainee_assessment_rubrics WHERE position_id=? AND is_active=1 AND month_from<=? AND (month_to IS NULL OR month_to>=?)`, x.DepartmentID, x.TrainingMonth, x.TrainingMonth).Scan(&rubricCount, &rubricID); err != nil {
+	if err := s.repository.db.QueryRowContext(ctx, `SELECT id FROM trainee_assessment_rubrics WHERE position_id=? AND is_active=1 AND month_from<=? ORDER BY month_from DESC,COALESCE(month_to,65535) DESC,id DESC LIMIT 1`, x.DepartmentID, x.TrainingMonth).Scan(&rubricID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrNoRubric
+		}
 		return err
-	}
-	if rubricCount != 1 {
-		return ErrNoRubric
 	}
 	x.RubricID = rubricID
 	aspects, err := s.repository.Rubric(ctx)
@@ -151,13 +150,9 @@ func (s *Service) validate(ctx context.Context, x *Input) error {
 	expected := make(map[uint64]bool)
 	for _, aspect := range aspects {
 		for _, criterion := range aspect.Criteria {
-			if !criterion.appliesTo(x.DepartmentID, x.TrainingMonth) {
+			if criterion.DepartmentID != x.DepartmentID || criterion.RubricID != x.RubricID {
 				continue
 			}
-			if x.RubricID != 0 && x.RubricID != criterion.RubricID {
-				return ErrNoRubric
-			}
-			x.RubricID = criterion.RubricID
 			if len(criterion.Rules) != 5 {
 				return ErrNoRubric
 			}
@@ -187,10 +182,10 @@ func (s *Service) validate(ctx context.Context, x *Input) error {
 	return nil
 }
 
+func validDate(v string) bool { _, e := time.Parse("2006-01-02", v); return e == nil }
 func (c Criterion) appliesTo(departmentID, month uint64) bool {
 	return c.DepartmentID == departmentID && month >= c.MonthFrom && (c.MonthTo == 0 || month <= c.MonthTo)
 }
-func validDate(v string) bool { _, e := time.Parse("2006-01-02", v); return e == nil }
 func oneOf(v string, xs ...string) bool {
 	for _, x := range xs {
 		if v == x {

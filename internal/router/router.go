@@ -15,6 +15,7 @@ import (
 	"mksiaga/internal/assessmentcategory"
 	"mksiaga/internal/assessmentcriterion"
 	"mksiaga/internal/assessmentreport"
+	"mksiaga/internal/assessmentrubric"
 	"mksiaga/internal/assessmentrule"
 	"mksiaga/internal/auth"
 	"mksiaga/internal/config"
@@ -91,6 +92,7 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 		assessmentCategoryHandler := assessmentcategory.NewHandler(cfg.AppName, assessmentcategory.NewService(assessmentcategory.NewRepository(db)), navigationService)
 		assessmentCriterionHandler := assessmentcriterion.NewHandler(cfg.AppName, assessmentcriterion.NewService(assessmentcriterion.NewRepository(db)), navigationService)
 		assessmentRuleHandler := assessmentrule.NewHandler(cfg.AppName, assessmentrule.NewService(assessmentrule.NewRepository(db)), navigationService)
+		assessmentRubricHandler := assessmentrubric.NewHandler(cfg.AppName, assessmentrubric.NewService(assessmentrubric.NewRepository(db)), navigationService)
 		organizationHandler := organization.NewHandler(cfg.AppName, organization.NewService(organization.NewRepository(db)), navigationService)
 		employeeHandler := employee.NewHandler(cfg.AppName, employee.NewService(employee.NewRepository(db)), navigationService)
 		assessmentHandler := traineeassessment.NewHandler(cfg.AppName, traineeassessment.NewService(traineeassessment.NewRepository(db)), navigationService)
@@ -153,6 +155,10 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 		master.POST("/assessment-score-rules", auth.RequirePermission(db, "assessment_score_rules.create"), assessmentRuleHandler.Create)
 		master.POST("/assessment-score-rules/:rubricID/:criterionID/:score/update", auth.RequirePermission(db, "assessment_score_rules.update"), assessmentRuleHandler.Update)
 		master.POST("/assessment-score-rules/:rubricID/:criterionID/:score/delete", auth.RequirePermission(db, "assessment_score_rules.delete"), assessmentRuleHandler.Delete)
+		master.GET("/assessment-rubrics", auth.RequirePermission(db, "assessment_rubrics.view"), assessmentRubricHandler.Index)
+		master.POST("/assessment-rubrics", auth.RequirePermission(db, "assessment_rubrics.create"), assessmentRubricHandler.Create)
+		master.POST("/assessment-rubrics/:id/update", auth.RequirePermission(db, "assessment_rubrics.update"), assessmentRubricHandler.Update)
+		master.POST("/assessment-rubrics/:id/delete", auth.RequirePermission(db, "assessment_rubrics.delete"), assessmentRubricHandler.Delete)
 		master.GET("/assessment-result-categories", auth.RequirePermission(db, "assessment_result_categories.view"), assessmentCategoryHandler.Index)
 		master.POST("/assessment-result-categories", auth.RequirePermission(db, "assessment_result_categories.create"), assessmentCategoryHandler.Create)
 		master.POST("/assessment-result-categories/:id/update", auth.RequirePermission(db, "assessment_result_categories.update"), assessmentCategoryHandler.Update)

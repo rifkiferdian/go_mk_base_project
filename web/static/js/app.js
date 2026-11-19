@@ -609,7 +609,11 @@ if (assessmentForm) {
     const department = trainee?.selectedOptions[0]?.dataset.departmentId;
     const month = Number(assessmentForm.elements.training_month.value);
     const rows = [...assessmentForm.querySelectorAll('[data-rubric-row]')];
-    const matches = rows.filter(row => row.dataset.departmentId === department && month >= Number(row.dataset.monthFrom) && (!Number(row.dataset.monthTo) || month <= Number(row.dataset.monthTo)));
+    const available = rows.filter(row => row.dataset.departmentId === department && month >= Number(row.dataset.monthFrom));
+    const exact = available.filter(row => !Number(row.dataset.monthTo) || month <= Number(row.dataset.monthTo));
+    const latestStart = available.length ? Math.max(...available.map(row => Number(row.dataset.monthFrom))) : 0;
+    const fallback = !exact.length && latestStart > 0;
+    const matches = exact.length ? exact : available.filter(row => Number(row.dataset.monthFrom) === latestStart);
     const rubrics = new Set(matches.map(row => row.dataset.rubricId));
     const complete = matches.length > 0 && matches.every(row => row.querySelectorAll('input[type="radio"]').length === 5);
     const valid = rubrics.size === 1 && complete && month >= 1 && month <= 24;
@@ -623,12 +627,37 @@ if (assessmentForm) {
       if (visible) row.cells[0].textContent = String(matches.indexOf(row) + 1);
     });
     const message = assessmentForm.querySelector('[data-rubric-message]');
-		if (message) message.textContent = !trainee?.value ? 'Pilih trainee dan bulan pelatihan untuk menampilkan rubrik.' : valid ? `Rubrik aktif: ${matches[0].dataset.rubricName}` : 'Rubrik bagian dan bulan ini belum tersedia atau belum lengkap. Hubungi pengelola master penilaian.';
+		if (message) message.textContent = !trainee?.value ? 'Pilih trainee dan bulan pelatihan untuk menampilkan rubrik.' : valid ? `Rubrik aktif: ${matches[0].dataset.rubricName}${fallback ? ' (menggunakan periode terakhir)' : ''}` : 'Rubrik jabatan ini belum tersedia atau belum lengkap. Hubungi pengelola master penilaian.';
     assessmentForm.querySelector('[data-submit-final]').disabled = !valid;
     updateAssessmentTotal();
   };
   trainee?.addEventListener('change', updateRubric);
   assessmentForm.elements.training_month.addEventListener('input', updateRubric);
+
+  const placementStart = document.createElement("span");
+  placementStart.innerHTML = 'Mulai jabatan: <strong data-trainee-started-at>—</strong>';
+  const traineeSummary = assessmentForm.querySelector("[data-trainee-store]")?.closest("div");
+  traineeSummary?.classList.replace("lg:grid-cols-4", "lg:grid-cols-5");
+  traineeSummary?.append(placementStart);
+  const traineeStarts = new Map([...assessmentForm.querySelectorAll("[data-trainee-start-record]")].map((item) => [item.dataset.employeeId, item.dataset.startedAt]));
+  const updateTrainingMonth = (recalculate = true) => {
+    const startedAt = traineeStarts.get(trainee?.value ?? "") ?? "";
+    const startElement = assessmentForm.querySelector("[data-trainee-started-at]");
+    if (startElement) startElement.textContent = startedAt ? new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "long", year: "numeric" }).format(new Date(`${startedAt}T00:00:00`)) : "—";
+    if (!recalculate || !startedAt || !assessmentDate?.value) return;
+    const start = new Date(`${startedAt}T00:00:00`);
+    const assessed = new Date(`${assessmentDate.value}T00:00:00`);
+    const calculated = (assessed.getFullYear() - start.getFullYear()) * 12 + assessed.getMonth() - start.getMonth() + 1;
+    assessmentForm.elements.training_month.value = String(Math.min(24, Math.max(1, calculated)));
+    assessmentForm.elements.training_month.dispatchEvent(new Event("input", { bubbles: true }));
+  };
+  if (assessmentDate && !assessmentDate.value) {
+    const now = new Date();
+    assessmentDate.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  }
+  trainee?.addEventListener("change", updateTrainingMonth);
+  assessmentDate?.addEventListener("change", updateTrainingMonth);
+  updateTrainingMonth(!assessmentForm.action.endsWith("/update"));
   updateRubric();
 
   assessmentForm.querySelector("[data-submit-final]")?.addEventListener("click", (event) => {
@@ -956,6 +985,20 @@ document.querySelectorAll("[data-edit-category]").forEach((button) => {
     form.elements.maximum_score.value = button.dataset.maximum ?? "";
     form.elements.deduction_percentage.value = button.dataset.deduction ?? "";
     form.elements.sort_order.value = button.dataset.order ?? "";
+    form.elements.is_active.checked = button.dataset.active === "true";
+    dialog.showModal();
+  });
+});
+
+document.querySelectorAll("[data-edit-rubric]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const dialog = document.querySelector("#editRubricDialog");
+    const form = document.querySelector("#editRubricForm");
+    if (!dialog || !form) return;
+    form.action = `/master/assessment-rubrics/${button.dataset.id}/update`;
+    form.elements.position_id.value = button.dataset.positionId ?? "";
+    form.elements.month_from.value = button.dataset.monthFrom ?? "";
+    form.elements.month_to.value = button.dataset.monthTo ?? "";
     form.elements.is_active.checked = button.dataset.active === "true";
     dialog.showModal();
   });
