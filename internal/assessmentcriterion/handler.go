@@ -100,8 +100,21 @@ func (h *Handler) Delete(c *gin.Context) {
 	h.redirectResult(c, h.service.Delete(c.Request.Context(), id), "criterion-deleted")
 }
 func formInput(c *gin.Context) (Input, bool) {
-	departmentID, departmentErr := strconv.ParseUint(c.PostForm("department_id"), 10, 64)
-	if departmentErr != nil || departmentID == 0 {
+	rawPositions := c.PostFormArray("position_ids")
+	if len(rawPositions) == 0 && c.PostForm("department_id") != "" {
+		rawPositions = []string{c.PostForm("department_id")}
+	}
+	positionIDs := make([]uint64, 0, len(rawPositions))
+	seen := make(map[uint64]bool)
+	for _, raw := range rawPositions {
+		positionID, err := strconv.ParseUint(raw, 10, 64)
+		if err != nil || positionID == 0 || seen[positionID] {
+			return Input{}, false
+		}
+		seen[positionID] = true
+		positionIDs = append(positionIDs, positionID)
+	}
+	if len(positionIDs) == 0 {
 		return Input{}, false
 	}
 	aspectID, e1 := strconv.ParseUint(c.PostForm("aspect_id"), 10, 64)
@@ -110,7 +123,7 @@ func formInput(c *gin.Context) (Input, bool) {
 	if e1 != nil || e2 != nil || e3 != nil || aspectID == 0 || order == 0 {
 		return Input{}, false
 	}
-	return Input{DepartmentID: departmentID, AspectID: aspectID, Code: c.PostForm("code"), Description: c.PostForm("description"), Weight: weight, SortOrder: uint16(order)}, true
+	return Input{DepartmentID: positionIDs[0], PositionIDs: positionIDs, AspectID: aspectID, Code: c.PostForm("code"), Description: c.PostForm("description"), Weight: weight, SortOrder: uint16(order)}, true
 }
 func routeID(c *gin.Context) (uint64, bool) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)

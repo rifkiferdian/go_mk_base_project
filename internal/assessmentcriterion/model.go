@@ -3,6 +3,7 @@ package assessmentcriterion
 type Criterion struct {
 	DepartmentID      uint64
 	DepartmentName    string
+	PositionIDs       string
 	MonthLabel        string
 	ID                uint64
 	AspectID          uint64
@@ -31,6 +32,7 @@ type RubricOption struct {
 
 type Input struct {
 	DepartmentID uint64
+	PositionIDs  []uint64
 	AspectID     uint64
 	Code         string
 	Description  string

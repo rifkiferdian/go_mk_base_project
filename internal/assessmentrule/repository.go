@@ -39,7 +39,7 @@ func (r *Repository) Rules(ctx context.Context) ([]Rule, error) {
 	return out, rows.Err()
 }
 func (r *Repository) Criteria(ctx context.Context) ([]CriterionOption, error) {
-	rows, err := r.db.QueryContext(ctx, `SELECT c.id,a.id,a.name,c.code,c.description,COUNT(r.score),5*(SELECT COUNT(*) FROM trainee_assessment_rubrics rb WHERE rb.position_id=c.position_id AND rb.is_active=1),c.position_id,p.name FROM trainee_assessment_criteria c JOIN trainee_assessment_aspects a ON a.id=c.aspect_id JOIN positions p ON p.id=c.position_id LEFT JOIN trainee_assessment_score_rules r ON r.criterion_id=c.id GROUP BY c.id,a.id,a.name,c.code,c.description,c.position_id,p.name,a.sort_order,c.sort_order ORDER BY p.name,a.sort_order,c.sort_order,c.id`)
+	rows, err := r.db.QueryContext(ctx, `SELECT c.id,a.id,a.name,c.code,c.description,COUNT(DISTINCT r.score),5*(SELECT COUNT(*) FROM trainee_assessment_rubrics rb WHERE rb.position_id=cp.position_id AND rb.is_active=1),cp.position_id,p.name FROM trainee_assessment_criteria c JOIN trainee_assessment_aspects a ON a.id=c.aspect_id JOIN trainee_assessment_criterion_positions cp ON cp.criterion_id=c.id JOIN positions p ON p.id=cp.position_id LEFT JOIN trainee_assessment_score_rules r ON r.criterion_id=c.id AND r.rubric_id IN (SELECT id FROM trainee_assessment_rubrics WHERE position_id=cp.position_id) GROUP BY c.id,a.id,a.name,c.code,c.description,cp.position_id,p.name,a.sort_order,c.sort_order ORDER BY p.name,a.sort_order,c.sort_order,c.id`)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +75,7 @@ func (r *Repository) Rule(ctx context.Context, key Key) (Rule, error) {
 }
 func (r *Repository) CriterionMatchesRubric(ctx context.Context, criterionID, rubricID uint64) (bool, error) {
 	var ok bool
-	err := r.db.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM trainee_assessment_criteria c JOIN trainee_assessment_rubrics b ON b.position_id=c.position_id WHERE c.id=? AND b.id=? AND b.is_active=1)`, criterionID, rubricID).Scan(&ok)
+	err := r.db.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM trainee_assessment_criterion_positions cp JOIN trainee_assessment_rubrics b ON b.position_id=cp.position_id WHERE cp.criterion_id=? AND b.id=? AND b.is_active=1)`, criterionID, rubricID).Scan(&ok)
 	return ok, err
 }
 func (r *Repository) RulesForCriterion(ctx context.Context, rubricID, criterionID uint64) ([]Rule, error) {

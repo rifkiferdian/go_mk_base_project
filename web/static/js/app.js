@@ -283,7 +283,8 @@ document.querySelectorAll("[data-edit-criterion]").forEach((button) => {
     const form = document.getElementById("editCriterionForm");
     if (!dialog || !form) return;
     form.action = `/master/assessment-criteria/${button.dataset.id}/update`;
-    form.elements.department_id.value = button.dataset.departmentId ?? "";
+    const positionIDs = (document.querySelector(`[data-criterion-position-directory] [data-criterion-id="${button.dataset.id}"]`)?.dataset.positionIds ?? "").split(",");
+    [...form.elements.position_ids.options].forEach((option) => { option.selected = positionIDs.includes(option.value); });
     form.elements.aspect_id.value = button.dataset.aspectId ?? "";
     form.elements.code.value = button.dataset.code ?? "";
     form.elements.description.value = button.dataset.description ?? "";

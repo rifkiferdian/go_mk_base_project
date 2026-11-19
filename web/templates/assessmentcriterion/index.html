@@ -5,7 +5,7 @@
     {{template "appTopbar" .}}
     <main class="mx-auto w-full max-w-[1440px] flex-1 px-4 py-6 sm:px-6 lg:px-8">
       <div class="mb-6 flex items-start justify-between gap-4">
-        <div><p class="text-[10px] font-bold uppercase tracking-[0.18em] text-orange-600">Master penilaian</p><h1 class="mt-2 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">Subaspek Penilaian</h1><p class="mt-2 text-sm text-slate-500">Kelola pertanyaan tetap untuk setiap bagian. Perbedaan bulan diatur pada menu Aturan Skor.</p></div>
+        <div><p class="text-[10px] font-bold uppercase tracking-[0.18em] text-orange-600">Master penilaian</p><h1 class="mt-2 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">Subaspek Penilaian</h1><p class="mt-2 text-sm text-slate-500">Kelola satu pertanyaan untuk satu atau beberapa jabatan. Perbedaan bulan diatur pada menu Aturan Skor.</p></div>
         <button type="button" data-open-dialog="createCriterionDialog" class="flex shrink-0 items-center gap-2 rounded-xl bg-orange-500 px-4 py-3 text-xs font-bold text-white shadow-lg shadow-orange-200 hover:bg-orange-600"><span class="text-lg leading-none">+</span><span class="hidden sm:inline">Tambah subaspek</span><span class="sm:hidden">Tambah</span></button>
       </div>
 
@@ -16,7 +16,7 @@
         <article class="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm sm:px-5"><div class="flex items-center justify-between gap-3"><span class="text-sm text-slate-500">Rubrik aktif</span><span class="grid size-14 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-amber-50 to-amber-200 text-amber-600 ring-1 ring-inset ring-amber-300/60 shadow-md shadow-amber-200/60"><i class="fa-solid fa-calendar-days size-7"></i></span></div><strong class="mt-1 block text-2xl tracking-tight sm:text-3xl">{{.RubricCount}}</strong><p class="mt-1 text-xs text-slate-400">Bagian dan periode tersedia</p></article>
       </section>
 
-      {{template "feedback" .}}
+      {{template "feedback" .}}<div hidden data-criterion-position-directory>{{range .Criteria}}<span data-criterion-id="{{.ID}}" data-position-ids="{{.PositionIDs}}"></span>{{end}}</div>
       <div data-access-filter class="mb-4 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:flex-row sm:items-center">
         <label class="flex min-w-0 flex-1 items-center gap-3 rounded-xl border border-slate-200 px-4 py-2.5 text-slate-400"><i class="fa-solid fa-magnifying-glass size-4 shrink-0"></i><input data-filter-search type="search" class="min-w-0 flex-1 text-sm text-slate-700 outline-none placeholder:text-slate-400" placeholder="Cari bagian, aspek, kode, atau pertanyaan..."></label>
         <select data-filter-guard class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-600 outline-none focus:border-orange-400"><option value="">Semua bagian</option>{{range .Departments}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select>
@@ -50,7 +50,7 @@
 
 {{define "criterionFields"}}
 <div class="mt-6 grid gap-4 sm:grid-cols-2">
-  <label class="block text-xs font-bold text-slate-700 sm:col-span-2">Bagian<select name="department_id" required class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-normal outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-100"><option value="">Pilih bagian</option>{{range .Departments}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select><span class="mt-2 block text-[11px] font-normal text-slate-400">Subaspek berlaku pada semua bulan; batas nilai per bulan dikelola di Aturan Skor.</span></label>
+  <label class="block text-xs font-bold text-slate-700 sm:col-span-2">Jabatan <span class="font-normal text-slate-400">(dapat memilih lebih dari satu)</span><select name="position_ids" multiple required size="6" class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-normal outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-100">{{range .Departments}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select><span class="mt-2 block text-[11px] font-normal text-slate-400">Gunakan Ctrl/Command untuk memilih beberapa jabatan. Subaspek akan digunakan bersama pada seluruh jabatan terpilih.</span></label>
   <label class="block text-xs font-bold text-slate-700">Aspek<select name="aspect_id" required class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-normal outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-100"><option value="">Pilih aspek</option>{{range .Aspects}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select></label>
   <label class="block text-xs font-bold text-slate-700">Kode subaspek<input name="code" required minlength="2" maxlength="50" pattern="[a-z0-9][a-z0-9_-]{1,49}" placeholder="contoh: layanan_1" class="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-normal lowercase outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-100"></label>
   <label class="block text-xs font-bold text-slate-700">Bobot<input name="weight" type="number" required min="0.01" max="999999.99" step="0.01" value="1" class="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-normal outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-100"></label>

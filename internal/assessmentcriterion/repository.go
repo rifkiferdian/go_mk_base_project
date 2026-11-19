@@ -11,14 +11,14 @@ type Repository struct{ db *sql.DB }
 func NewRepository(db *sql.DB) *Repository { return &Repository{db: db} }
 
 func (r *Repository) Criteria(ctx context.Context) ([]Criterion, error) {
-	const query = `SELECT c.id,c.aspect_id,a.code,a.name,c.code,c.description,c.weight,c.sort_order,c.position_id,p.name,
-		COUNT(sr.score),5*(SELECT COUNT(*) FROM trainee_assessment_rubrics rb WHERE rb.position_id=c.position_id AND rb.is_active=1),COUNT(DISTINCT d.assessment_id)
+	const query = `SELECT c.id,c.aspect_id,a.code,a.name,c.code,c.description,c.weight,c.sort_order,MIN(cp.position_id),GROUP_CONCAT(DISTINCT p.name ORDER BY p.name SEPARATOR ', '),GROUP_CONCAT(DISTINCT cp.position_id ORDER BY cp.position_id),
+		COUNT(DISTINCT CONCAT(sr.rubric_id,':',sr.score)),5*(SELECT COUNT(*) FROM trainee_assessment_rubrics rb JOIN trainee_assessment_criterion_positions cx ON cx.position_id=rb.position_id WHERE cx.criterion_id=c.id AND rb.is_active=1),COUNT(DISTINCT d.assessment_id)
 		FROM trainee_assessment_criteria c
-		JOIN trainee_assessment_aspects a ON a.id=c.aspect_id JOIN positions p ON p.id=c.position_id
+		JOIN trainee_assessment_aspects a ON a.id=c.aspect_id JOIN trainee_assessment_criterion_positions cp ON cp.criterion_id=c.id JOIN positions p ON p.id=cp.position_id
 		LEFT JOIN trainee_assessment_score_rules sr ON sr.criterion_id=c.id
 		LEFT JOIN trainee_assessment_details d ON d.criterion_id=c.id
-		GROUP BY c.id,c.aspect_id,a.code,a.name,c.code,c.description,c.weight,c.sort_order,c.position_id,p.name
-		ORDER BY p.name,a.sort_order,c.sort_order,c.id`
+		GROUP BY c.id,c.aspect_id,a.code,a.name,c.code,c.description,c.weight,c.sort_order
+		ORDER BY MIN(p.name),a.sort_order,c.sort_order,c.id`
 	rows, err := r.db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("list assessment criteria: %w", err)
@@ -27,7 +27,7 @@ func (r *Repository) Criteria(ctx context.Context) ([]Criterion, error) {
 	var result []Criterion
 	for rows.Next() {
 		var item Criterion
-		if err := rows.Scan(&item.ID, &item.AspectID, &item.AspectCode, &item.AspectName, &item.Code, &item.Description, &item.Weight, &item.SortOrder, &item.DepartmentID, &item.DepartmentName, &item.RuleCount, &item.ExpectedRuleCount, &item.AssessmentCount); err != nil {
+		if err := rows.Scan(&item.ID, &item.AspectID, &item.AspectCode, &item.AspectName, &item.Code, &item.Description, &item.Weight, &item.SortOrder, &item.DepartmentID, &item.DepartmentName, &item.PositionIDs, &item.RuleCount, &item.ExpectedRuleCount, &item.AssessmentCount); err != nil {
 			return nil, fmt.Errorf("scan assessment criterion: %w", err)
 		}
 		result = append(result, item)
@@ -54,12 +54,12 @@ func (r *Repository) Aspects(ctx context.Context) ([]AspectOption, error) {
 
 func (r *Repository) Criterion(ctx context.Context, id uint64) (Criterion, error) {
 	var item Criterion
-	err := r.db.QueryRowContext(ctx, `SELECT c.id,c.aspect_id,a.code,a.name,c.code,c.description,c.weight,c.sort_order,c.position_id,p.name,
+	err := r.db.QueryRowContext(ctx, `SELECT c.id,c.aspect_id,a.code,a.name,c.code,c.description,c.weight,c.sort_order,MIN(cp.position_id),GROUP_CONCAT(DISTINCT p.name ORDER BY p.name SEPARATOR ', '),GROUP_CONCAT(DISTINCT cp.position_id ORDER BY cp.position_id),
 		(SELECT COUNT(*) FROM trainee_assessment_score_rules sr WHERE sr.criterion_id=c.id),
-		5*(SELECT COUNT(*) FROM trainee_assessment_rubrics rb WHERE rb.position_id=c.position_id AND rb.is_active=1),
+		5*(SELECT COUNT(*) FROM trainee_assessment_rubrics rb JOIN trainee_assessment_criterion_positions cx ON cx.position_id=rb.position_id WHERE cx.criterion_id=c.id AND rb.is_active=1),
 		(SELECT COUNT(*) FROM trainee_assessment_details d WHERE d.criterion_id=c.id)
-		FROM trainee_assessment_criteria c JOIN trainee_assessment_aspects a ON a.id=c.aspect_id JOIN positions p ON p.id=c.position_id WHERE c.id=?`, id).
-		Scan(&item.ID, &item.AspectID, &item.AspectCode, &item.AspectName, &item.Code, &item.Description, &item.Weight, &item.SortOrder, &item.DepartmentID, &item.DepartmentName, &item.RuleCount, &item.ExpectedRuleCount, &item.AssessmentCount)
+		FROM trainee_assessment_criteria c JOIN trainee_assessment_aspects a ON a.id=c.aspect_id JOIN trainee_assessment_criterion_positions cp ON cp.criterion_id=c.id JOIN positions p ON p.id=cp.position_id WHERE c.id=? GROUP BY c.id,c.aspect_id,a.code,a.name,c.code,c.description,c.weight,c.sort_order`, id).
+		Scan(&item.ID, &item.AspectID, &item.AspectCode, &item.AspectName, &item.Code, &item.Description, &item.Weight, &item.SortOrder, &item.DepartmentID, &item.DepartmentName, &item.PositionIDs, &item.RuleCount, &item.ExpectedRuleCount, &item.AssessmentCount)
 	return item, err
 }
 
@@ -93,13 +93,51 @@ func (r *Repository) Departments(ctx context.Context) ([]AspectOption, error) {
 }
 
 func (r *Repository) Create(ctx context.Context, input Input) error {
-	_, err := r.db.ExecContext(ctx, `INSERT INTO trainee_assessment_criteria(position_id,department_id,aspect_id,code,description,weight,sort_order) SELECT p.id,p.department_id,?,?,?,?,? FROM positions p WHERE p.id=?`, input.AspectID, input.Code, input.Description, input.Weight, input.SortOrder, input.DepartmentID)
-	return err
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	res, err := tx.ExecContext(ctx, `INSERT INTO trainee_assessment_criteria(position_id,department_id,aspect_id,code,description,weight,sort_order) SELECT p.id,p.department_id,?,?,?,?,? FROM positions p WHERE p.id=?`, input.AspectID, input.Code, input.Description, input.Weight, input.SortOrder, input.DepartmentID)
+	if err != nil {
+		return err
+	}
+	id, err := res.LastInsertId()
+	if err != nil {
+		return err
+	}
+	for _, positionID := range input.PositionIDs {
+		if _, err = tx.ExecContext(ctx, `INSERT INTO trainee_assessment_criterion_positions(criterion_id,position_id) VALUES(?,?)`, id, positionID); err != nil {
+			return err
+		}
+	}
+	if _, err = tx.ExecContext(ctx, `DELETE sr FROM trainee_assessment_score_rules sr JOIN trainee_assessment_rubrics r ON r.id=sr.rubric_id WHERE sr.criterion_id=? AND NOT EXISTS(SELECT 1 FROM trainee_assessment_criterion_positions cp WHERE cp.criterion_id=sr.criterion_id AND cp.position_id=r.position_id)`, id); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 func (r *Repository) Update(ctx context.Context, id uint64, input Input) error {
-	_, err := r.db.ExecContext(ctx, `UPDATE trainee_assessment_criteria c JOIN positions p ON p.id=? SET c.position_id=p.id,c.department_id=p.department_id,c.aspect_id=?,c.code=?,c.description=?,c.weight=?,c.sort_order=? WHERE c.id=?`, input.DepartmentID, input.AspectID, input.Code, input.Description, input.Weight, input.SortOrder, id)
-	return err
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if _, err = tx.ExecContext(ctx, `UPDATE trainee_assessment_criteria c JOIN positions p ON p.id=? SET c.position_id=p.id,c.department_id=p.department_id,c.aspect_id=?,c.code=?,c.description=?,c.weight=?,c.sort_order=? WHERE c.id=?`, input.DepartmentID, input.AspectID, input.Code, input.Description, input.Weight, input.SortOrder, id); err != nil {
+		return err
+	}
+	if _, err = tx.ExecContext(ctx, `DELETE FROM trainee_assessment_criterion_positions WHERE criterion_id=?`, id); err != nil {
+		return err
+	}
+	for _, positionID := range input.PositionIDs {
+		if _, err = tx.ExecContext(ctx, `INSERT INTO trainee_assessment_criterion_positions(criterion_id,position_id) VALUES(?,?)`, id, positionID); err != nil {
+			return err
+		}
+	}
+	if _, err = tx.ExecContext(ctx, `DELETE sr FROM trainee_assessment_score_rules sr JOIN trainee_assessment_rubrics r ON r.id=sr.rubric_id WHERE sr.criterion_id=? AND NOT EXISTS(SELECT 1 FROM trainee_assessment_criterion_positions cp WHERE cp.criterion_id=sr.criterion_id AND cp.position_id=r.position_id)`, id); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 func (r *Repository) Delete(ctx context.Context, id uint64) error {

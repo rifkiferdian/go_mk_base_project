@@ -30,14 +30,21 @@ FROM positions p CROSS JOIN (
  UNION ALL SELECT 'keinginan_belajar','checker_belajar_1','Sering salah memahami arahan kerja dan perlu diingatkan atau dijelaskan kembali',1
  UNION ALL SELECT 'keinginan_belajar','checker_belajar_2','Kurang berinisiatif untuk belajar hal baru atau meningkatkan kemampuan kerja',2
 ) c JOIN trainee_assessment_aspects a ON a.code=c.aspect_code
-WHERE p.code IN ('checker_atk_craft','checker_busana','checker_gudang','checker_supermarket')
+WHERE p.code='checker_atk_craft'
 ON DUPLICATE KEY UPDATE aspect_id=VALUES(aspect_id),description=VALUES(description),weight=VALUES(weight),sort_order=VALUES(sort_order);
+
+INSERT IGNORE INTO trainee_assessment_criterion_positions(criterion_id,position_id)
+SELECT c.id,p.id FROM trainee_assessment_criteria c
+JOIN positions source ON source.id=c.position_id AND source.code='checker_atk_craft'
+CROSS JOIN positions p
+WHERE c.code LIKE 'checker_%' AND p.code IN ('checker_atk_craft','checker_busana','checker_gudang','checker_supermarket');
 
 INSERT INTO trainee_assessment_score_rules(rubric_id,criterion_id,score,finding_min,finding_max,description)
 SELECT r.id,c.id,s.score,s.finding_min,s.finding_max,s.description
 FROM trainee_assessment_rubrics r
 JOIN positions p ON p.id=r.position_id
-JOIN trainee_assessment_criteria c ON c.position_id=p.id AND c.code LIKE 'checker_%'
+JOIN trainee_assessment_criterion_positions cp ON cp.position_id=p.id
+JOIN trainee_assessment_criteria c ON c.id=cp.criterion_id AND c.code LIKE 'checker_%'
 JOIN (
  SELECT 'standard' kind,5 score,0 finding_min,0 finding_max,'tidak ada temuan' description
  UNION ALL SELECT 'standard',4,1,2,'1x - 2x temuan'

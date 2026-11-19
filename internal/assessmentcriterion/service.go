@@ -66,15 +66,17 @@ func (s *Service) Delete(ctx context.Context, id uint64) error {
 }
 
 func (s *Service) normalize(ctx context.Context, input Input) (Input, error) {
-	if input.DepartmentID == 0 {
+	if input.DepartmentID == 0 || len(input.PositionIDs) == 0 {
 		return Input{}, ErrInvalid
 	}
-	active, err := s.repository.DepartmentExists(ctx, input.DepartmentID)
-	if err != nil {
-		return Input{}, err
-	}
-	if !active {
-		return Input{}, ErrInvalid
+	for _, positionID := range input.PositionIDs {
+		active, err := s.repository.DepartmentExists(ctx, positionID)
+		if err != nil {
+			return Input{}, err
+		}
+		if !active {
+			return Input{}, ErrInvalid
+		}
 	}
 	input.Code = strings.ToLower(strings.TrimSpace(input.Code))
 	input.Description = strings.TrimSpace(input.Description)
