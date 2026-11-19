@@ -47,6 +47,7 @@ var definitions = []definition{
 	{group: "Pengaturan", parent: "assessment-settings", key: "assessment-aspects", label: "Aspek Penilaian", url: "/master/assessment-aspects", permission: "assessment_aspects.view"},
 	{group: "Pengaturan", parent: "assessment-settings", key: "assessment-criteria", label: "Subaspek Penilaian", url: "/master/assessment-criteria", permission: "assessment_criteria.view"},
 	{group: "Pengaturan", parent: "assessment-settings", key: "assessment-score-rules", label: "Aturan Skor", url: "/master/assessment-score-rules", permission: "assessment_score_rules.view"},
+	{group: "Pengaturan", parent: "assessment-settings", key: "assessment-result-categories", label: "Kategori Hasil", url: "/master/assessment-result-categories", permission: "assessment_result_categories.view"},
 	{group: "Pengelolaan", parent: "access", key: "users", label: "User", url: "/settings/users", permission: "users.view"},
 	{group: "Pengelolaan", parent: "access", key: "roles", label: "Role", url: "/settings/roles", permission: "roles.view"},
 	{group: "Pengelolaan", parent: "access", key: "permissions", label: "Permission", url: "/settings/permissions", permission: "permissions.view"},

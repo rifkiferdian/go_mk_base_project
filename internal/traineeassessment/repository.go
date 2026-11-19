@@ -11,6 +11,23 @@ type Repository struct{ db *sql.DB }
 
 func NewRepository(db *sql.DB) *Repository { return &Repository{db: db} }
 
+func (r *Repository) ResultCategories(ctx context.Context) ([]ResultCategory, error) {
+	rows, err := r.db.QueryContext(ctx, `SELECT name,minimum_score,maximum_score,deduction_percentage FROM trainee_assessment_result_categories WHERE is_active=1 ORDER BY sort_order,minimum_score`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var result []ResultCategory
+	for rows.Next() {
+		var item ResultCategory
+		if err = rows.Scan(&item.Name, &item.Minimum, &item.Maximum, &item.Deduction); err != nil {
+			return nil, err
+		}
+		result = append(result, item)
+	}
+	return result, rows.Err()
+}
+
 func (r *Repository) Assessments(ctx context.Context, userID uint64, all bool, filter ListFilter) ([]Assessment, error) {
 	q := `SELECT a.id,a.trainee_employee_id,a.employee_number,a.employee_name,COALESCE(a.trainee_position_name,''),a.department_name,a.store_name,a.training_month,DATE_FORMAT(a.assessment_date,'%Y-%m-%d'),COALESCE(a.notes,''),a.status,a.assessor_name,COALESCE(a.assessor_position_name,''),COALESCE(v.total_score,0),COALESCE(v.total_weight,0),COALESCE(v.average_score,0),COALESCE(v.rating,''),COALESCE(v.scored_count,0),COALESCE(v.criterion_count,0) FROM trainee_assessments a LEFT JOIN trainee_assessment_results v ON v.assessment_id=a.id`
 	args := []any{}
@@ -265,6 +282,19 @@ func (r *Repository) save(ctx context.Context, id, userID uint64, assessorName s
 			return 0, e
 		}
 		if n, err := res.RowsAffected(); err != nil || n != 1 {
+			return 0, ErrInvalid
+		}
+	}
+	if input.Status == "final" {
+		result, snapshotErr := tx.ExecContext(ctx, `UPDATE trainee_assessments a
+			JOIN (SELECT assessment_id,ROUND(SUM(weight*score)/NULLIF(SUM(weight),0),2) average_score FROM trainee_assessment_details WHERE assessment_id=? GROUP BY assessment_id) v ON v.assessment_id=a.id
+			JOIN trainee_assessment_result_categories c ON c.is_active=1 AND v.average_score BETWEEN c.minimum_score AND c.maximum_score
+			SET a.result_category_name=c.name,a.result_deduction_percentage=c.deduction_percentage
+			WHERE a.id=?`, id, id)
+		if snapshotErr != nil {
+			return 0, snapshotErr
+		}
+		if affected, err := result.RowsAffected(); err != nil || affected != 1 {
 			return 0, ErrInvalid
 		}
 	}

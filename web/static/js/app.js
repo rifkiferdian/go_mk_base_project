@@ -582,7 +582,8 @@ if (assessmentForm) {
       if (description) description.textContent = selected.dataset.ruleDescription || "";
     });
     const average = filled === groups.length && totalWeight ? Math.round(total / totalWeight * 100) / 100 : 0;
-    const rating = average <= 0 ? "Belum lengkap" : average <= 1.8 ? "Sangat Kurang Sekali" : average <= 2.6 ? "Kurang Sekali" : average <= 3.4 ? "Kurang" : average <= 4.2 ? "Mendekati Standar" : "Sesuai Standar";
+    const category = [...assessmentForm.querySelectorAll("[data-result-category]")].find((item) => average >= Number(item.dataset.minimum) && average <= Number(item.dataset.maximum));
+    const rating = average <= 0 ? "Belum lengkap" : category?.dataset.name ?? "Kategori belum diatur";
     const weight = assessmentForm.querySelector("[data-assessment-weight]");
     const averageElement = assessmentForm.querySelector("[data-assessment-average]");
     const ratingElement = assessmentForm.querySelector("[data-assessment-rating]");
@@ -921,3 +922,57 @@ document.addEventListener("click", (event) => {
   }
   if (notificationWrapper && !notificationWrapper.contains(event.target)) notificationWrapper.removeAttribute("open");
 });
+
+document.querySelectorAll("[data-edit-category]").forEach((button) => {
+  button.textContent = "";
+  button.title = "Edit kategori";
+  button.setAttribute("aria-label", "Edit kategori");
+  button.classList.remove("px-3", "py-2");
+  button.classList.add("grid", "size-9", "cursor-pointer", "place-items-center", "p-0");
+  const icon = document.createElement("i");
+  icon.className = "fa-solid fa-pen";
+  icon.setAttribute("aria-hidden", "true");
+  button.append(icon);
+  button.addEventListener("click", () => {
+    const dialog = document.querySelector("#editCategoryDialog");
+    const form = document.querySelector("#editCategoryForm");
+    if (!dialog || !form) return;
+    form.action = `/master/assessment-result-categories/${button.dataset.id}/update`;
+    form.elements.name.value = button.dataset.name ?? "";
+    form.elements.minimum_score.value = button.dataset.minimum ?? "";
+    form.elements.maximum_score.value = button.dataset.maximum ?? "";
+    form.elements.deduction_percentage.value = button.dataset.deduction ?? "";
+    form.elements.sort_order.value = button.dataset.order ?? "";
+    form.elements.is_active.checked = button.dataset.active === "true";
+    dialog.showModal();
+  });
+});
+
+document.querySelectorAll('form[action^="/master/assessment-result-categories/"][action$="/delete"] button').forEach((button) => {
+  button.textContent = "";
+  button.title = "Hapus kategori";
+  button.setAttribute("aria-label", "Hapus kategori");
+  button.classList.remove("px-3", "py-2");
+  button.classList.add("grid", "size-9", "cursor-pointer", "place-items-center", "p-0");
+  const icon = document.createElement("i");
+  icon.className = "fa-solid fa-trash";
+  icon.setAttribute("aria-hidden", "true");
+  button.append(icon);
+});
+
+const assessmentCategoryNodes = [...document.querySelectorAll("[data-result-category]")];
+if (assessmentCategoryNodes.length) {
+  const categoryHeading = [...document.querySelectorAll("h2")].find((item) => item.textContent.includes("Keterangan hasil penilaian"));
+  const categoryGrid = categoryHeading?.parentElement?.querySelector(".mt-3.grid");
+  if (categoryGrid) {
+    categoryGrid.replaceChildren(...assessmentCategoryNodes.map((item, index) => {
+      const entry = document.createElement("span");
+      const number = document.createElement("strong");
+      number.textContent = `${index + 1}. `;
+      const detail = document.createElement("small");
+      detail.textContent = `${Number(item.dataset.minimum).toFixed(2)}–${Number(item.dataset.maximum).toFixed(2)} · Potongan ${Number(item.dataset.deduction).toFixed(0)}%`;
+      entry.append(number, document.createTextNode(item.dataset.name ?? ""), document.createElement("br"), detail);
+      return entry;
+    }));
+  }
+}

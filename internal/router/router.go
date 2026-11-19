@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"mksiaga/internal/access"
 	"mksiaga/internal/assessmentaspect"
+	"mksiaga/internal/assessmentcategory"
 	"mksiaga/internal/assessmentcriterion"
 	"mksiaga/internal/assessmentreport"
 	"mksiaga/internal/assessmentrule"
@@ -85,6 +86,7 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 		authorized.GET("/", dashboard.NewHandler(cfg.AppName, assessmentReportService, navigationService).Index)
 		accessHandler := access.NewHandler(cfg.AppName, access.NewService(access.NewRepository(db)), navigationService)
 		assessmentAspectHandler := assessmentaspect.NewHandler(cfg.AppName, assessmentaspect.NewService(assessmentaspect.NewRepository(db)), navigationService)
+		assessmentCategoryHandler := assessmentcategory.NewHandler(cfg.AppName, assessmentcategory.NewService(assessmentcategory.NewRepository(db)), navigationService)
 		assessmentCriterionHandler := assessmentcriterion.NewHandler(cfg.AppName, assessmentcriterion.NewService(assessmentcriterion.NewRepository(db)), navigationService)
 		assessmentRuleHandler := assessmentrule.NewHandler(cfg.AppName, assessmentrule.NewService(assessmentrule.NewRepository(db)), navigationService)
 		organizationHandler := organization.NewHandler(cfg.AppName, organization.NewService(organization.NewRepository(db)), navigationService)
@@ -142,6 +144,10 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 		master.POST("/assessment-score-rules", auth.RequirePermission(db, "assessment_score_rules.create"), assessmentRuleHandler.Create)
 		master.POST("/assessment-score-rules/:rubricID/:criterionID/:score/update", auth.RequirePermission(db, "assessment_score_rules.update"), assessmentRuleHandler.Update)
 		master.POST("/assessment-score-rules/:rubricID/:criterionID/:score/delete", auth.RequirePermission(db, "assessment_score_rules.delete"), assessmentRuleHandler.Delete)
+		master.GET("/assessment-result-categories", auth.RequirePermission(db, "assessment_result_categories.view"), assessmentCategoryHandler.Index)
+		master.POST("/assessment-result-categories", auth.RequirePermission(db, "assessment_result_categories.create"), assessmentCategoryHandler.Create)
+		master.POST("/assessment-result-categories/:id/update", auth.RequirePermission(db, "assessment_result_categories.update"), assessmentCategoryHandler.Update)
+		master.POST("/assessment-result-categories/:id/delete", auth.RequirePermission(db, "assessment_result_categories.delete"), assessmentCategoryHandler.Delete)
 		master.GET("/job-levels", auth.RequirePermission(db, "job_levels.view"), organizationHandler.JobLevels)
 		master.POST("/job-levels", auth.RequirePermission(db, "job_levels.create"), organizationHandler.CreateJobLevel)
 		master.POST("/job-levels/:id/update", auth.RequirePermission(db, "job_levels.update"), organizationHandler.UpdateJobLevel)

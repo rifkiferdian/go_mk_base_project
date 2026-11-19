@@ -46,7 +46,12 @@ type FormData struct {
 	Assessment Assessment
 	Trainees   []Trainee
 	Aspects    []Aspect
+	Categories []ResultCategory
 	Editing    bool
+}
+type ResultCategory struct {
+	Name                        string
+	Minimum, Maximum, Deduction float64
 }
 type DetailInput struct {
 	CriterionID uint64

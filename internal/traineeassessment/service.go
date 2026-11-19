@@ -52,7 +52,11 @@ func (s *Service) Form(c context.Context, id, uid uint64, roles string) (FormDat
 	if e != nil {
 		return FormData{}, e
 	}
-	f := FormData{Trainees: trainees, Aspects: aspects}
+	categories, e := s.repository.ResultCategories(c)
+	if e != nil {
+		return FormData{}, e
+	}
+	f := FormData{Trainees: trainees, Aspects: aspects, Categories: categories}
 	if id == 0 {
 		return f, nil
 	}
