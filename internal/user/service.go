@@ -27,6 +27,9 @@ func (s *Service) Users(ctx context.Context) ([]User, error) { return s.reposito
 func (s *Service) Options(ctx context.Context) ([]StoreOption, []RoleOption, error) {
 	return s.repository.Options(ctx)
 }
+func (s *Service) Employees(ctx context.Context) ([]EmployeeOption, error) {
+	return s.repository.Employees(ctx)
+}
 func (s *Service) StoreAssignments(ctx context.Context, userID uint64) (User, []StoreAssignment, []RoleOption, error) {
 	item, err := s.repository.User(ctx, userID)
 	if err != nil {

@@ -35,6 +35,11 @@ func (h *Handler) Index(c *gin.Context) {
 		h.internalError(c, err)
 		return
 	}
+	employees, err := h.service.Employees(c.Request.Context())
+	if err != nil {
+		h.internalError(c, err)
+		return
+	}
 	active, inactive, assignments := 0, 0, 0
 	for _, item := range users {
 		if item.Status == "active" {
@@ -44,7 +49,7 @@ func (h *Handler) Index(c *gin.Context) {
 		}
 		assignments += item.StoreCount
 	}
-	h.render(c, http.StatusOK, "user/index.html", gin.H{"Title": "User", "ActivePage": "users", "Users": users, "Stores": stores, "Roles": roles, "UserCount": len(users), "ActiveUserCount": active, "InactiveUserCount": inactive, "StoreAssignmentCount": assignments})
+	h.render(c, http.StatusOK, "user/index.html", gin.H{"Title": "User", "ActivePage": "users", "Users": users, "Stores": stores, "Roles": roles, "Employees": employees, "UserCount": len(users), "ActiveUserCount": active, "InactiveUserCount": inactive, "StoreAssignmentCount": assignments})
 }
 func (h *Handler) Create(c *gin.Context) {
 	if !auth.ValidCSRF(c, c.PostForm("csrf_token")) {

@@ -86,6 +86,23 @@ func (r *Repository) Options(ctx context.Context) ([]StoreOption, []RoleOption, 
 	return stores, roles, roleRows.Err()
 }
 
+func (r *Repository) Employees(ctx context.Context) ([]EmployeeOption, error) {
+	rows, err := r.db.QueryContext(ctx, `SELECT employee_number,name FROM employees WHERE status='active' ORDER BY employee_number`)
+	if err != nil {
+		return nil, fmt.Errorf("list employees for user lookup: %w", err)
+	}
+	defer rows.Close()
+	var result []EmployeeOption
+	for rows.Next() {
+		var item EmployeeOption
+		if err := rows.Scan(&item.Number, &item.Name); err != nil {
+			return nil, err
+		}
+		result = append(result, item)
+	}
+	return result, rows.Err()
+}
+
 func (r *Repository) StoreAssignments(ctx context.Context, userID uint64) ([]StoreAssignment, error) {
 	const query = `SELECT s.id,s.name,us.id IS NOT NULL,COALESCE(us.is_default,0),
 		COALESCE((SELECT role_id FROM user_store_roles WHERE user_store_id=us.id ORDER BY role_id LIMIT 1),0)
@@ -158,7 +175,7 @@ func (r *Repository) Create(ctx context.Context, input Input, passwordHash strin
 		return err
 	}
 	defer tx.Rollback()
-	result, err := tx.ExecContext(ctx, `INSERT INTO users(employee_number,name,username,email,password_hash,phone,status) VALUES(NULLIF(?,''),?,?,NULLIF(?,''),?,NULLIF(?,''),?)`, input.EmployeeNumber, input.Name, input.Username, input.Email, passwordHash, input.Phone, input.Status)
+	result, err := tx.ExecContext(ctx, `INSERT INTO users(employee_id,employee_number,name,username,email,password_hash,phone,status) VALUES((SELECT e.id FROM employees e WHERE e.employee_number=NULLIF(?,'')),NULLIF(?,''),?,?,NULLIF(?,''),?,NULLIF(?,''),?)`, input.EmployeeNumber, input.EmployeeNumber, input.Name, input.Username, input.Email, passwordHash, input.Phone, input.Status)
 	if err != nil {
 		return err
 	}
@@ -187,9 +204,9 @@ func (r *Repository) Update(ctx context.Context, id uint64, input Input, passwor
 	}
 	defer tx.Rollback()
 	if passwordHash == "" {
-		_, err = tx.ExecContext(ctx, `UPDATE users SET employee_number=NULLIF(?,''),name=?,username=?,email=NULLIF(?,''),phone=NULLIF(?,''),status=? WHERE id=? AND deleted_at IS NULL`, input.EmployeeNumber, input.Name, input.Username, input.Email, input.Phone, input.Status, id)
+		_, err = tx.ExecContext(ctx, `UPDATE users SET employee_id=(SELECT e.id FROM employees e WHERE e.employee_number=NULLIF(?,'')),employee_number=NULLIF(?,''),name=?,username=?,email=NULLIF(?,''),phone=NULLIF(?,''),status=? WHERE id=? AND deleted_at IS NULL`, input.EmployeeNumber, input.EmployeeNumber, input.Name, input.Username, input.Email, input.Phone, input.Status, id)
 	} else {
-		_, err = tx.ExecContext(ctx, `UPDATE users SET employee_number=NULLIF(?,''),name=?,username=?,email=NULLIF(?,''),phone=NULLIF(?,''),status=?,password_hash=? WHERE id=? AND deleted_at IS NULL`, input.EmployeeNumber, input.Name, input.Username, input.Email, input.Phone, input.Status, passwordHash, id)
+		_, err = tx.ExecContext(ctx, `UPDATE users SET employee_id=(SELECT e.id FROM employees e WHERE e.employee_number=NULLIF(?,'')),employee_number=NULLIF(?,''),name=?,username=?,email=NULLIF(?,''),phone=NULLIF(?,''),status=?,password_hash=? WHERE id=? AND deleted_at IS NULL`, input.EmployeeNumber, input.EmployeeNumber, input.Name, input.Username, input.Email, input.Phone, input.Status, passwordHash, id)
 	}
 	if err != nil {
 		return err

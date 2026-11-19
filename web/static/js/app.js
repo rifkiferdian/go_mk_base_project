@@ -232,8 +232,20 @@ document.querySelectorAll("[data-edit-user]").forEach((button) => {
     form.elements.status.value = button.dataset.status ?? "active";
     form.elements.store_id.value = button.dataset.storeId ?? "";
     form.elements.role_id.value = button.dataset.roleId ?? "";
+    form.elements.employee_number.dispatchEvent(new Event("input", { bubbles: true }));
     dialog.showModal();
   });
+});
+
+const employeeDirectory = new Map([...document.querySelectorAll("[data-employee-directory] [data-employee-number]")].map((item) => [item.dataset.employeeNumber.trim().toUpperCase(), item.dataset.employeeName]));
+document.querySelectorAll('form input[name="employee_number"]').forEach((input) => {
+  const output = input.form?.querySelector("[data-employee-lookup-name]");
+  const updateEmployeeName = () => {
+    if (output) output.value = employeeDirectory.get(input.value.trim().toUpperCase()) ?? "";
+  };
+  input.addEventListener("input", updateEmployeeName);
+  input.addEventListener("change", updateEmployeeName);
+  updateEmployeeName();
 });
 
 document.querySelectorAll("[data-edit-store]").forEach((button) => {

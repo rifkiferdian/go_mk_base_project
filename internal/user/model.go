@@ -26,6 +26,11 @@ type RoleOption struct {
 	Name string
 }
 
+type EmployeeOption struct {
+	Number string
+	Name   string
+}
+
 type StoreAssignment struct {
 	StoreID   uint64
 	StoreName string

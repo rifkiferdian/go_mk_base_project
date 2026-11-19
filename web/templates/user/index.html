@@ -16,7 +16,7 @@
         <article class="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm sm:px-5"><div class="flex items-center justify-between gap-3"><span class="text-sm text-slate-500">Assignment store</span><span class="grid size-14 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-amber-50 to-amber-200 text-amber-600 ring-1 ring-inset ring-amber-300/60 shadow-md shadow-amber-200/60"><i class="fa-solid fa-store size-7" aria-hidden="true"></i></span></div><strong class="mt-1 block text-2xl tracking-tight sm:text-3xl">{{.StoreAssignmentCount}}</strong><p class="mt-1 text-xs text-slate-400">Relasi user dan store</p></article>
       </section>
 
-      {{template "feedback" .}}
+      {{template "feedback" .}}<div hidden data-employee-directory>{{range .Employees}}<span data-employee-number="{{.Number}}" data-employee-name="{{.Name}}"></span>{{end}}</div>
 
       <div data-access-filter class="mb-4 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:flex-row sm:items-center">
         <label class="flex min-w-0 flex-1 items-center gap-3 rounded-xl border border-slate-200 px-4 py-2.5 text-slate-400"><i class="fa-solid fa-magnifying-glass size-4 shrink-0" aria-hidden="true"></i><input data-filter-search type="search" class="min-w-0 flex-1 text-sm text-slate-700 outline-none placeholder:text-slate-400" placeholder="Cari nama, username, email, store, atau role..."></label>
@@ -53,7 +53,8 @@
 {{define "userFields"}}
 <div class="mt-6 grid gap-4 sm:grid-cols-2">
   <label class="block text-xs font-bold text-slate-700">Nama lengkap<input name="name" required maxlength="150" class="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-normal outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-100"></label>
-  <label class="block text-xs font-bold text-slate-700">Nomor pegawai<input name="employee_number" maxlength="50" class="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-normal outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-100"></label>
+  <label class="block text-xs font-bold text-slate-700">Nomor pegawai<input name="employee_number" maxlength="50" autocomplete="off" class="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-normal uppercase outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-100"></label>
+  <label class="block text-xs font-bold text-slate-700">Nama karyawan terhubung<input data-employee-lookup-name readonly tabindex="-1" placeholder="Kosong jika NIK tidak ditemukan" class="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-emerald-700 outline-none"></label>
   <label class="block text-xs font-bold text-slate-700">Username<input name="username" required minlength="3" maxlength="100" class="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-normal outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-100"></label>
   <label class="block text-xs font-bold text-slate-700">Email<input name="email" type="email" maxlength="191" class="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-normal outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-100"></label>
   <label class="block text-xs font-bold text-slate-700">Telepon<input name="phone" maxlength="30" class="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-normal outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-100"></label>
