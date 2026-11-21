@@ -33,7 +33,17 @@ func (h *Handler) Index(c *gin.Context) {
 		return
 	}
 	token, _ := auth.CSRFToken(c)
-	c.HTML(http.StatusOK, "team/index.html", gin.H{"Title": "Tim Saya", "ActivePage": "my-team", "AppName": h.app, "IsDashboard": true, "Authenticated": true, "Section": "Kepegawaian", "UserName": u.Name, "UserInitials": initials(u.Name), "StoreName": u.StoreName, "RoleName": u.RoleName, "CSRFToken": token, "Menus": menus, "Members": items, "MemberCount": len(items)})
+	departments := make(map[string]struct{})
+	stores := make(map[string]struct{})
+	traineeCount := 0
+	for _, item := range items {
+		departments[item.Department] = struct{}{}
+		stores[item.Store] = struct{}{}
+		if item.Employment == "trainee" {
+			traineeCount++
+		}
+	}
+	c.HTML(http.StatusOK, "team/index.html", gin.H{"Title": "Tim Saya", "ActivePage": "my-team", "AppName": h.app, "IsDashboard": true, "Authenticated": true, "Section": "Kepegawaian", "UserName": u.Name, "UserInitials": initials(u.Name), "StoreName": u.StoreName, "RoleName": u.RoleName, "CSRFToken": token, "Menus": menus, "Members": items, "MemberCount": len(items), "TraineeCount": traineeCount, "DepartmentCount": len(departments), "StoreCount": len(stores)})
 }
 func initials(n string) string {
 	p := strings.Fields(n)

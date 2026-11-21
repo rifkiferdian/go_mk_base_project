@@ -740,7 +740,10 @@ if (["/master/employees", "/master/employee-assignments"].includes(window.locati
 }
 
 document.querySelectorAll("[data-access-filter]").forEach((filter) => {
-  const table = filter.nextElementSibling;
+  const nextElement = filter.nextElementSibling;
+  const table = nextElement?.matches("[data-filter-table]")
+    ? nextElement
+    : filter.parentElement?.querySelector("[data-filter-table]");
   if (!table?.matches("[data-filter-table]")) return;
 
   const search = filter.querySelector("[data-filter-search]");
@@ -752,6 +755,10 @@ document.querySelectorAll("[data-access-filter]").forEach((filter) => {
   const count = filter.querySelector("[data-filter-count]");
   const rows = [...table.querySelectorAll("[data-filter-row]")];
   const empty = table.querySelector("[data-filter-empty]");
+  const previousSection = table.previousElementSibling;
+  const mobileList = previousSection?.querySelector("[data-filter-row]") ? previousSection : null;
+  const mobileRows = [...mobileList?.querySelectorAll("[data-filter-row]") ?? []];
+  const mobileEmpty = mobileList?.querySelector("[data-filter-empty]");
   const pageSize = 25;
   let currentPage = 1;
 
@@ -859,13 +866,19 @@ document.querySelectorAll("[data-access-filter]").forEach((filter) => {
     const pageStart = (currentPage - 1) * pageSize;
     const pageRows = new Set(filteredRows.slice(pageStart, pageStart + pageSize));
     rows.forEach((row) => row.classList.toggle("hidden", !pageRows.has(row)));
+    const visibleIndexes = new Set(rows.flatMap((row, index) => pageRows.has(row) ? [index] : []));
+    mobileRows.forEach((row, index) => row.classList.toggle("hidden", !visibleIndexes.has(index)));
     filteredRows.forEach((row, index) => {
-      const number = row.querySelector("[data-row-number]");
+      const number = row.querySelector("[data-row-number]") ?? (mobileRows.length > 0 ? row.cells?.[0] : null);
       if (number) number.textContent = String(index + 1);
+      const mobileRow = mobileRows[rows.indexOf(row)];
+      const mobileNumber = mobileRow?.querySelector("[data-row-number]") ?? mobileRow?.querySelector(".flex > span:first-child");
+      if (mobileNumber) mobileNumber.textContent = String(index + 1);
     });
 
     if (count) count.textContent = `${filteredRows.length} data`;
     empty?.classList.toggle("hidden", filteredRows.length !== 0 || rows.length === 0);
+    mobileEmpty?.classList.toggle("hidden", filteredRows.length !== 0 || mobileRows.length === 0);
     renderPagination(filteredRows.length, totalPages);
   }
 

@@ -4,7 +4,9 @@
   <div class="flex items-center justify-between px-2 pb-7"><a href="/" class="flex items-center gap-3"><span class="grid size-11 place-items-center rounded-2xl bg-gradient-to-br from-orange-400 to-orange-600 text-white shadow-lg shadow-orange-200"><i class="fa-solid fa-award size-6" aria-hidden="true"></i></span><span><strong class="block text-sm tracking-wide">Apresiasi Trainee</strong><small class="mt-0.5 block text-[11px] text-slate-400">Manna Kampus</small></span></a><button id="closeSidebar" type="button" class="grid size-9 place-items-center rounded-xl text-slate-500 hover:bg-slate-100 lg:hidden" aria-label="Tutup menu"><i class="fa-solid fa-xmark size-5" aria-hidden="true"></i></button></div>
   <nav class="app-sidebar-nav flex-1 overflow-y-auto" aria-label="Navigasi aplikasi">
     {{range .Menus}}
+    {{if eq .Label "Pengelolaan"}}
     <p class="mb-2 mt-6 px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400 first:mt-0">{{.Label}}</p>
+    {{end}}
     {{range .Items}}
     {{if .Children}}
     <div data-sidebar-parent>
