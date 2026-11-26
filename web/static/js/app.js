@@ -1,3 +1,25 @@
+document.querySelectorAll("[data-question-group-filter]").forEach((filter) => {
+  const search = filter.querySelector("[data-group-search]");
+  const status = filter.querySelector("[data-group-status]");
+  const cards = [...document.querySelectorAll("[data-question-group-card]")];
+  const apply = () => {
+    const query = search.value.trim().toLocaleLowerCase("id");
+    let visible = 0;
+    cards.forEach((card) => {
+      const matches = card.dataset.search.toLocaleLowerCase("id").includes(query) &&
+        (!status.value || card.dataset.status.split(", ").includes(status.value));
+      card.hidden = !matches;
+      card.classList.toggle("hidden", !matches);
+      if (matches) visible++;
+    });
+    filter.querySelector("[data-group-count]").textContent = visible + " kelompok";
+    document.querySelector("[data-group-empty]").hidden = visible !== 0;
+  };
+  search.addEventListener("input", apply);
+  status.addEventListener("change", apply);
+  apply();
+});
+
 document.querySelectorAll("[data-password-toggle]").forEach((button) => {
   button.addEventListener("click", () => {
     const input = document.getElementById(button.dataset.target);
@@ -254,7 +276,8 @@ document.querySelectorAll("[data-edit-store]").forEach((button) => {
     const form = document.getElementById("editStoreForm");
     if (!dialog || !form) return;
     form.action = `/master/stores/${button.dataset.id}/update`;
-    if (form.elements.employment_status) form.elements.employment_status.value = button.dataset.employmentStatus ?? "trainee";
+    if (form.elements.question_group_id) form.elements.question_group_id.value = button.dataset.questionGroupId ?? "";
+ if (form.elements.employment_status) form.elements.employment_status.value = button.dataset.employmentStatus ?? "trainee";
     form.elements.code.value = button.dataset.code ?? "";
     form.elements.name.value = button.dataset.name ?? "";
     form.elements.address.value = button.dataset.address ?? "";
@@ -700,6 +723,14 @@ document.querySelectorAll("form[data-confirm]").forEach((form) => {
       return;
     }
 
+    // Native modal dialogs live in the browser top layer, above SweetAlert.
+    // Temporarily leave that layer so confirmation can receive focus and clicks.
+    const parentDialog = form.closest("dialog[open]");
+    const dialogScrollTop = parentDialog?.scrollTop ?? 0;
+    const previousFocus = document.activeElement;
+    if (parentDialog) parentDialog.close();
+    let confirmed = false;
+    try {
     const result = await Swal.fire({
       title: "Hapus data?",
       text: form.dataset.confirm,
@@ -711,9 +742,17 @@ document.querySelectorAll("form[data-confirm]").forEach((form) => {
       cancelButtonColor: "#64748b",
       reverseButtons: true,
       focusCancel: true,
+      returnFocus: false,
     });
-
-    if (result.isConfirmed) form.submit();
+    confirmed = result.isConfirmed;
+    } finally {
+      if (!confirmed && parentDialog?.isConnected) {
+        parentDialog.showModal();
+        parentDialog.scrollTop = dialogScrollTop;
+        previousFocus?.focus({ preventScroll: true });
+      }
+    }
+    if (confirmed) form.submit();
   });
 });
 
@@ -756,6 +795,11 @@ document.querySelectorAll("[data-access-filter]").forEach((filter) => {
   const department = filter.querySelector("[data-filter-department]");
   const status = filter.querySelector("[data-filter-status]");
   const employment = filter.querySelector("[data-filter-employment]");
+  const questionGroup = filter.querySelector("[data-filter-question-group]");
+  if (questionGroup) {
+    const selectedGroup = new URLSearchParams(window.location.search).get("group_id");
+    if ([...questionGroup.options].some(option => option.value === selectedGroup)) questionGroup.value = selectedGroup;
+  }
   const supervisor = filter.querySelector("[data-filter-supervisor]");
   const count = filter.querySelector("[data-filter-count]");
   const rows = [...table.querySelectorAll("[data-filter-row]")];
@@ -865,7 +909,8 @@ document.querySelectorAll("[data-access-filter]").forEach((filter) => {
       const matchesStatus = !selectedStatus || row.dataset.filterStatus === selectedStatus;
       const matchesSupervisor = !selectedSupervisor || (row.dataset.filterSupervisor ?? "").toLowerCase().includes(selectedSupervisor);
       const matchesEmployment = !employment?.value || row.dataset.filterEmployment === employment.value;
-      return matchesEmployment && matchesSearch && matchesGuard && matchesExtra && matchesDepartment && matchesStatus && matchesSupervisor;
+      const matchesQuestionGroup = !questionGroup?.value || row.dataset.filterQuestionGroup === questionGroup.value;
+      return matchesQuestionGroup && matchesEmployment && matchesSearch && matchesGuard && matchesExtra && matchesDepartment && matchesStatus && matchesSupervisor;
     });
     const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
     currentPage = Math.min(currentPage, totalPages);
@@ -893,6 +938,13 @@ document.querySelectorAll("[data-access-filter]").forEach((filter) => {
   extra?.addEventListener("change", () => applyAccessFilter(true));
   department?.addEventListener("change", () => {
     updateDependentExtra();
+    applyAccessFilter(true);
+  });
+  questionGroup?.addEventListener("change", () => {
+    const url = new URL(window.location.href);
+    if (questionGroup.value) url.searchParams.set("group_id", questionGroup.value);
+    else url.searchParams.delete("group_id");
+    history.replaceState(null, "", url);
     applyAccessFilter(true);
   });
   employment?.addEventListener("change", () => applyAccessFilter(true));
@@ -1085,3 +1137,27 @@ if (window.location.pathname === "/placement-change-requests") {
 }
 
 if (window.location.pathname === "/my-team") document.querySelector("[data-filter-count]")?.classList.add("hidden");
+
+
+// Open the add-question form with the originating group's existing settings.
+if (window.location.pathname === "/master/assessment-criteria") {
+  const params = new URLSearchParams(window.location.search);
+  const groupID = params.get("group_id");
+  const dialog = document.getElementById("createCriterionDialog");
+  const form = dialog?.querySelector("form");
+  const groupSelect = form?.elements.question_group_id;
+  if (params.get("action") === "create" && groupID && groupSelect &&
+      [...groupSelect.options].some(option => option.value === groupID)) {
+    groupSelect.value = groupID;
+    const records = [...document.querySelectorAll("[data-criterion-position-directory] [data-question-group-id]")]
+      .filter(record => record.dataset.questionGroupId === groupID);
+    const positions = new Set(records.flatMap(record => record.dataset.positionIds.split(",")));
+    [...form.elements.position_ids.options].forEach(option => option.selected = positions.has(option.value));
+    const statuses = [...new Set(records.map(record => record.dataset.employmentStatus).filter(Boolean))];
+    if (statuses.length === 1) form.elements.employment_status.value = statuses[0];
+    dialog.showModal();
+    form.elements.description.focus();
+    params.delete("action");
+    history.replaceState(null, "", window.location.pathname + "?" + params.toString());
+  }
+}

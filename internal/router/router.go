@@ -26,6 +26,7 @@ import (
 	"mksiaga/internal/organization"
 	"mksiaga/internal/placementrequest"
 	"mksiaga/internal/profile"
+	"mksiaga/internal/questiongroup"
 	"mksiaga/internal/sessionmanagement"
 	storeManagement "mksiaga/internal/store"
 	"mksiaga/internal/team"
@@ -139,6 +140,13 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 		settings.POST("/permissions/:id/update", auth.RequirePermission(db, "permissions.update"), accessHandler.UpdatePermission)
 		settings.POST("/permissions/:id/delete", auth.RequirePermission(db, "permissions.delete"), accessHandler.DeletePermission)
 		master := authorized.Group("/master")
+		groupHandler := questiongroup.NewHandler(cfg.AppName, db, navigationService)
+		master.GET("/question-groups", auth.RequirePermission(db, "question_groups.view"), groupHandler.Index)
+		master.POST("/question-groups", auth.RequirePermission(db, "question_groups.manage"), groupHandler.Save)
+		master.POST("/question-groups/:id/update", auth.RequirePermission(db, "question_groups.manage"), groupHandler.Save)
+		master.POST("/question-groups/:id/positions", auth.RequirePermission(db, "question_groups.manage"), groupHandler.AddPosition)
+		master.POST("/question-groups/:id/positions/:positionID/remove", auth.RequirePermission(db, "question_groups.manage"), groupHandler.RemovePosition)
+		master.POST("/question-groups/:id/delete", auth.RequirePermission(db, "question_groups.manage"), groupHandler.Delete)
 		master.GET("/stores", auth.RequirePermission(db, "stores.view"), storeHandler.Index)
 		master.POST("/stores", auth.RequirePermission(db, "stores.create"), storeHandler.Create)
 		master.POST("/stores/:id/update", auth.RequirePermission(db, "stores.update"), storeHandler.Update)

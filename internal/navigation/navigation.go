@@ -34,6 +34,7 @@ type definition struct {
 }
 
 var definitions = []definition{
+	{group: "Pengaturan", parent: "assessment-settings", key: "question-groups", label: "Kelompok Soal", url: "/master/question-groups", permission: "question_groups.view"},
 	{group: "Menu utama", key: "dashboard", label: "Dashboard", url: "/"},
 	{group: "Penilaian", key: "trainee-assessments", label: "Penilaian Trainee", url: "/assessments", permission: "trainee_assessments.view"},
 	{group: "Kepegawaian", key: "placement-change-requests", label: "Pengajuan Penempatan", url: "/placement-change-requests", permission: "placement_change_requests.view"},

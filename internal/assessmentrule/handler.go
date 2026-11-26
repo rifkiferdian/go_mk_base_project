@@ -39,6 +39,66 @@ func (h *Handler) Index(c *gin.Context) {
 		h.internalError(c, err)
 		return
 	}
+	selectedGroupName := ""
+	if raw := c.Query("group_id"); raw != "" {
+		groupID, parseErr := strconv.ParseUint(raw, 10, 64)
+		if parseErr != nil || groupID == 0 {
+			c.Redirect(http.StatusSeeOther, "/master/assessment-score-rules")
+			return
+		}
+		if err = h.service.repository.db.QueryRowContext(c, "SELECT name FROM assessment_question_groups WHERE id=?", groupID).Scan(&selectedGroupName); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				c.Redirect(http.StatusSeeOther, "/master/assessment-score-rules")
+				return
+			}
+			h.internalError(c, err)
+			return
+		}
+		rows, e := h.service.repository.db.QueryContext(c, "SELECT id FROM trainee_assessment_criteria WHERE question_group_id=?", groupID)
+		if e != nil {
+			h.internalError(c, e)
+			return
+		}
+		ids := map[uint64]bool{}
+		for rows.Next() {
+			var id uint64
+			if e = rows.Scan(&id); e != nil {
+				rows.Close()
+				h.internalError(c, e)
+				return
+			}
+			ids[id] = true
+		}
+		e = rows.Err()
+		rows.Close()
+		if e != nil {
+			h.internalError(c, e)
+			return
+		}
+		filteredRules := make([]Rule, 0)
+		rubricIDs := map[uint64]bool{}
+		for _, r := range rules {
+			if ids[r.CriterionID] {
+				filteredRules = append(filteredRules, r)
+				rubricIDs[r.RubricID] = true
+			}
+		}
+		rules = filteredRules
+		filteredCriteria := make([]CriterionOption, 0)
+		for _, x := range criteria {
+			if ids[x.ID] {
+				filteredCriteria = append(filteredCriteria, x)
+			}
+		}
+		criteria = filteredCriteria
+		filteredRubrics := make([]RubricOption, 0)
+		for _, x := range rubrics {
+			if rubricIDs[x.ID] {
+				filteredRubrics = append(filteredRubrics, x)
+			}
+		}
+		rubrics = filteredRubrics
+	}
 	groups := make([]RuleGroup, 0)
 	groupIndex := make(map[string]int)
 	for _, rule := range rules {
@@ -78,7 +138,7 @@ func (h *Handler) Index(c *gin.Context) {
 			aspects = append(aspects, AspectOption{ID: item.AspectID, Name: item.AspectName})
 		}
 	}
-	h.render(c, http.StatusOK, gin.H{"Title": "Aturan Skor", "ActivePage": "assessment-score-rules", "Rules": rules, "RuleGroups": groups, "Criteria": criteria, "Rubrics": rubrics, "RuleDepartments": departments, "RuleAspects": aspects, "RuleCount": len(rules), "CriterionCount": len(criteria), "ConfiguredCount": configured, "IncompleteCount": len(criteria) - configured, "AspectCount": len(aspects)})
+	h.render(c, http.StatusOK, gin.H{"SelectedGroupName": selectedGroupName, "Title": "Aturan Skor", "ActivePage": "assessment-score-rules", "Rules": rules, "RuleGroups": groups, "Criteria": criteria, "Rubrics": rubrics, "RuleDepartments": departments, "RuleAspects": aspects, "RuleCount": len(rules), "CriterionCount": len(criteria), "ConfiguredCount": configured, "IncompleteCount": len(criteria) - configured, "AspectCount": len(aspects)})
 }
 func (h *Handler) Create(c *gin.Context) {
 	if !auth.ValidCSRF(c, c.PostForm("csrf_token")) {

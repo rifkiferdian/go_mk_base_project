@@ -137,7 +137,7 @@ func (s *Service) validate(ctx context.Context, x *Input) error {
 		return ErrInvalid
 	}
 	var rubricID uint64
-	if err := s.repository.db.QueryRowContext(ctx, `SELECT b.id FROM trainee_assessment_rubrics b WHERE b.position_id=? AND b.is_active=1 AND b.month_from<=? AND EXISTS(SELECT 1 FROM trainee_assessment_score_rules sr JOIN trainee_assessment_criteria c ON c.id=sr.criterion_id WHERE sr.rubric_id=b.id AND c.employment_status=?) ORDER BY b.month_from DESC,COALESCE(b.month_to,65535) DESC,b.id DESC LIMIT 1`, x.DepartmentID, x.TrainingMonth, x.EmploymentStatus).Scan(&rubricID); err != nil {
+	if err := s.repository.db.QueryRowContext(ctx, `SELECT b.id FROM trainee_assessment_rubrics b WHERE b.position_id=? AND b.is_active=1 AND b.month_from<=? AND EXISTS(SELECT 1 FROM trainee_assessment_score_rules sr JOIN trainee_assessment_criteria c ON c.id=sr.criterion_id WHERE sr.rubric_id=b.id AND c.employment_status=? AND EXISTS(SELECT 1 FROM trainee_assessment_criterion_positions cp WHERE cp.criterion_id=c.id AND cp.position_id=b.position_id)) ORDER BY b.month_from DESC,COALESCE(b.month_to,65535) DESC,b.id DESC LIMIT 1`, x.DepartmentID, x.TrainingMonth, x.EmploymentStatus).Scan(&rubricID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return ErrNoRubric
 		}

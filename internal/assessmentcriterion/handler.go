@@ -35,6 +35,11 @@ func (h *Handler) Index(c *gin.Context) {
 		h.internalError(c, err)
 		return
 	}
+	groups, err := h.service.repository.QuestionGroups(c)
+	if err != nil {
+		h.internalError(c, err)
+		return
+	}
 	configured, used := 0, 0
 	rubrics, err := h.service.Rubrics(c.Request.Context())
 	if err != nil {
@@ -56,7 +61,7 @@ func (h *Handler) Index(c *gin.Context) {
 			used++
 		}
 	}
-	h.render(c, http.StatusOK, gin.H{"Title": "Subaspek Penilaian", "ActivePage": "assessment-criteria", "Criteria": criteria, "Aspects": aspects, "Departments": departments, "Rubrics": rubrics, "CriterionCount": len(criteria), "ConfiguredCount": configured, "UsedCount": used, "RubricCount": len(rubrics), "TotalWeight": totalWeight})
+	h.render(c, http.StatusOK, gin.H{"Title": "Subaspek Penilaian", "ActivePage": "assessment-criteria", "QuestionGroups": groups, "Criteria": criteria, "Aspects": aspects, "Departments": departments, "Rubrics": rubrics, "CriterionCount": len(criteria), "ConfiguredCount": configured, "UsedCount": used, "RubricCount": len(rubrics), "TotalWeight": totalWeight})
 }
 func (h *Handler) Create(c *gin.Context) {
 	if !auth.ValidCSRF(c, c.PostForm("csrf_token")) {
@@ -117,13 +122,17 @@ func formInput(c *gin.Context) (Input, bool) {
 	if len(positionIDs) == 0 {
 		return Input{}, false
 	}
+	groupID, groupErr := strconv.ParseUint(c.PostForm("question_group_id"), 10, 64)
+	if c.PostForm("question_group_id") != "" && groupErr != nil {
+		return Input{}, false
+	}
 	aspectID, e1 := strconv.ParseUint(c.PostForm("aspect_id"), 10, 64)
 	weight, e2 := strconv.ParseFloat(c.PostForm("weight"), 64)
 	order, e3 := strconv.ParseUint(c.PostForm("sort_order"), 10, 16)
 	if e1 != nil || e2 != nil || e3 != nil || aspectID == 0 || order == 0 {
 		return Input{}, false
 	}
-	return Input{EmploymentStatus: c.PostForm("employment_status"), DepartmentID: positionIDs[0], PositionIDs: positionIDs, AspectID: aspectID, Code: c.PostForm("code"), Description: c.PostForm("description"), Weight: weight, SortOrder: uint16(order)}, true
+	return Input{QuestionGroupID: groupID, EmploymentStatus: c.PostForm("employment_status"), DepartmentID: positionIDs[0], PositionIDs: positionIDs, AspectID: aspectID, Code: c.PostForm("code"), Description: c.PostForm("description"), Weight: weight, SortOrder: uint16(order)}, true
 }
 func routeID(c *gin.Context) (uint64, bool) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)

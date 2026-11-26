@@ -17,6 +17,7 @@
       </section>
 
       {{template "feedback" .}}
+{{if .SelectedGroupName}}<div class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3"><p class="text-sm text-orange-800"><i class="fa-solid fa-folder-open mr-2"></i>Kelompok soal: <strong>{{.SelectedGroupName}}</strong></p><div class="flex gap-4 text-xs font-bold"><a href="/master/question-groups" class="text-orange-700 hover:underline">Kembali ke kelompok</a><a href="/master/assessment-score-rules" class="text-slate-600 hover:underline">Tampilkan semua</a></div></div>{{end}}
       <div data-access-filter class="mb-4 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:flex-row sm:items-center">
         <label class="flex min-w-0 flex-1 items-center gap-3 rounded-xl border border-slate-200 px-4 py-2.5 text-slate-400"><i class="fa-solid fa-magnifying-glass size-4 shrink-0"></i><input data-filter-search type="search" class="min-w-0 flex-1 text-sm text-slate-700 outline-none placeholder:text-slate-400" placeholder="Cari subaspek, aspek, skor, atau keterangan..."></label>
         <label class="text-xs font-bold text-slate-600"><span class="sr-only">Bagian</span><select data-filter-department aria-label="Filter bagian" class="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-normal text-slate-600 outline-none focus:border-orange-400 sm:w-auto"><option value="">Semua bagian</option>{{range .RuleDepartments}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select></label>

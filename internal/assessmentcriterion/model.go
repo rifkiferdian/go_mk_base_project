@@ -20,6 +20,8 @@ func (c Criterion) EmploymentStatusLabel() string {
 }
 
 type Criterion struct {
+	QuestionGroupID   uint64
+	QuestionGroupName string
 	EmploymentStatus  string
 	DepartmentID      uint64
 	DepartmentName    string
@@ -51,6 +53,7 @@ type RubricOption struct {
 }
 
 type Input struct {
+	QuestionGroupID  uint64
 	EmploymentStatus string
 	DepartmentID     uint64
 	PositionIDs      []uint64
