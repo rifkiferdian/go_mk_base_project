@@ -87,7 +87,7 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 	authorized.POST("/logout", authHandler.Logout)
 	if db != nil {
 		assessmentReportService := assessmentreport.NewService(assessmentreport.NewRepository(db))
-		authorized.GET("/", dashboard.NewHandler(cfg.AppName, assessmentReportService, navigationService).Index)
+		authorized.GET("/", dashboard.NewHandler(cfg.AppName, assessmentReportService, navigationService, db).Index)
 		accessHandler := access.NewHandler(cfg.AppName, access.NewService(access.NewRepository(db)), navigationService)
 		assessmentAspectHandler := assessmentaspect.NewHandler(cfg.AppName, assessmentaspect.NewService(assessmentaspect.NewRepository(db)), navigationService)
 		assessmentCategoryHandler := assessmentcategory.NewHandler(cfg.AppName, assessmentcategory.NewService(assessmentcategory.NewRepository(db)), navigationService)
