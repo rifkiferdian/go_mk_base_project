@@ -112,7 +112,7 @@ func (r *Repository) Trainees(ctx context.Context, userID uint64, all bool) ([]T
 	return out, rows.Err()
 }
 func (r *Repository) Rubric(ctx context.Context) ([]Aspect, error) {
-	rows, e := r.db.QueryContext(ctx, `SELECT a.id,a.name,c.id,c.description,c.weight,COALESCE(r.score,0),COALESCE(r.finding_min,0),r.finding_max,COALESCE(r.description,''),b.id,cp.position_id,b.month_from,COALESCE(b.month_to,0),b.name,c.employment_status FROM trainee_assessment_aspects a JOIN trainee_assessment_criteria c ON c.aspect_id=a.id JOIN trainee_assessment_criterion_positions cp ON cp.criterion_id=c.id JOIN trainee_assessment_rubrics b ON b.position_id=cp.position_id AND b.is_active=1 LEFT JOIN trainee_assessment_score_rules r ON r.criterion_id=c.id AND r.rubric_id=b.id ORDER BY cp.position_id,b.month_from,a.sort_order,a.id,c.sort_order,c.id,r.score DESC`)
+	rows, e := r.db.QueryContext(ctx, `SELECT a.id,a.name,c.id,c.description,c.weight,COALESCE(r.score,0),COALESCE(r.finding_min,0),r.finding_max,COALESCE(r.description,''),b.id,cp.position_id,b.month_from,COALESCE(b.month_to,0),b.name,c.employment_status FROM trainee_assessment_aspects a JOIN trainee_assessment_criteria c ON c.aspect_id=a.id JOIN trainee_assessment_criterion_positions cp ON cp.criterion_id=c.id JOIN trainee_assessment_rubrics b ON b.position_id=cp.position_id AND b.is_active=1 LEFT JOIN trainee_assessment_score_rules r ON r.criterion_id=c.id AND r.rubric_id=b.id WHERE EXISTS(SELECT 1 FROM trainee_assessment_score_rules sx JOIN trainee_assessment_criteria cx ON cx.id=sx.criterion_id WHERE sx.rubric_id=b.id AND cx.employment_status=c.employment_status) ORDER BY cp.position_id,b.month_from,a.sort_order,a.id,c.sort_order,c.id,r.score DESC`)
 	if e != nil {
 		return nil, e
 	}
