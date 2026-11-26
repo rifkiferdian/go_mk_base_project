@@ -254,6 +254,7 @@ document.querySelectorAll("[data-edit-store]").forEach((button) => {
     const form = document.getElementById("editStoreForm");
     if (!dialog || !form) return;
     form.action = `/master/stores/${button.dataset.id}/update`;
+    if (form.elements.employment_status) form.elements.employment_status.value = button.dataset.employmentStatus ?? "trainee";
     form.elements.code.value = button.dataset.code ?? "";
     form.elements.name.value = button.dataset.name ?? "";
     form.elements.address.value = button.dataset.address ?? "";
@@ -270,6 +271,7 @@ document.querySelectorAll("[data-edit-aspect]").forEach((button) => {
     const form = document.getElementById("editAspectForm");
     if (!dialog || !form) return;
     form.action = `/master/assessment-aspects/${button.dataset.id}/update`;
+    if (form.elements.employment_status) form.elements.employment_status.value = button.dataset.employmentStatus ?? "trainee";
     form.elements.code.value = button.dataset.code ?? "";
     form.elements.name.value = button.dataset.name ?? "";
     form.elements.sort_order.value = button.dataset.sortOrder ?? "";
@@ -286,6 +288,7 @@ document.querySelectorAll("[data-edit-criterion]").forEach((button) => {
     const positionIDs = (document.querySelector(`[data-criterion-position-directory] [data-criterion-id="${button.dataset.id}"]`)?.dataset.positionIds ?? "").split(",");
     [...form.elements.position_ids.options].forEach((option) => { option.selected = positionIDs.includes(option.value); });
     form.elements.aspect_id.value = button.dataset.aspectId ?? "";
+    if (form.elements.employment_status) form.elements.employment_status.value = button.dataset.employmentStatus ?? "trainee";
     form.elements.code.value = button.dataset.code ?? "";
     form.elements.description.value = button.dataset.description ?? "";
     form.elements.weight.value = button.dataset.weight ?? "1";
@@ -353,6 +356,7 @@ document.querySelectorAll("[data-edit-organization]").forEach((button) => {
     const form = document.getElementById(config[1]);
     if (!dialog || !form) return;
     form.action = `/master/${config[2]}/${button.dataset.id}/update`;
+    if (form.elements.employment_status) form.elements.employment_status.value = button.dataset.employmentStatus ?? "trainee";
     form.elements.code.value = button.dataset.code ?? "";
     form.elements.name.value = button.dataset.name ?? "";
     if (form.elements.rank_order) form.elements.rank_order.value = button.dataset.rankOrder ?? "";
@@ -609,7 +613,7 @@ if (assessmentForm) {
     const department = trainee?.selectedOptions[0]?.dataset.departmentId;
     const month = Number(assessmentForm.elements.training_month.value);
     const rows = [...assessmentForm.querySelectorAll('[data-rubric-row]')];
-    const available = rows.filter(row => row.dataset.departmentId === department && month >= Number(row.dataset.monthFrom));
+    const available = rows.filter(row => row.dataset.employmentStatus === trainee?.selectedOptions[0]?.dataset.employmentStatus && row.dataset.departmentId === department && month >= Number(row.dataset.monthFrom));
     const exact = available.filter(row => !Number(row.dataset.monthTo) || month <= Number(row.dataset.monthTo));
     const latestStart = available.length ? Math.max(...available.map(row => Number(row.dataset.monthFrom))) : 0;
     const fallback = !exact.length && latestStart > 0;
@@ -751,6 +755,7 @@ document.querySelectorAll("[data-access-filter]").forEach((filter) => {
   const extra = filter.querySelector("[data-filter-extra]");
   const department = filter.querySelector("[data-filter-department]");
   const status = filter.querySelector("[data-filter-status]");
+  const employment = filter.querySelector("[data-filter-employment]");
   const supervisor = filter.querySelector("[data-filter-supervisor]");
   const count = filter.querySelector("[data-filter-count]");
   const rows = [...table.querySelectorAll("[data-filter-row]")];
@@ -859,7 +864,8 @@ document.querySelectorAll("[data-access-filter]").forEach((filter) => {
       const matchesDepartment = !selectedDepartment || row.dataset.filterDepartment === selectedDepartment;
       const matchesStatus = !selectedStatus || row.dataset.filterStatus === selectedStatus;
       const matchesSupervisor = !selectedSupervisor || (row.dataset.filterSupervisor ?? "").toLowerCase().includes(selectedSupervisor);
-      return matchesSearch && matchesGuard && matchesExtra && matchesDepartment && matchesStatus && matchesSupervisor;
+      const matchesEmployment = !employment?.value || row.dataset.filterEmployment === employment.value;
+      return matchesEmployment && matchesSearch && matchesGuard && matchesExtra && matchesDepartment && matchesStatus && matchesSupervisor;
     });
     const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
     currentPage = Math.min(currentPage, totalPages);
@@ -889,6 +895,7 @@ document.querySelectorAll("[data-access-filter]").forEach((filter) => {
     updateDependentExtra();
     applyAccessFilter(true);
   });
+  employment?.addEventListener("change", () => applyAccessFilter(true));
   status?.addEventListener("change", () => applyAccessFilter(true));
   supervisor?.addEventListener(supervisor.matches("select") ? "change" : "input", () => applyAccessFilter(true));
   applyAccessFilter();

@@ -1,6 +1,26 @@
 package assessmentcriterion
 
+func (c Criterion) EmploymentStatusLabel() string {
+	switch c.EmploymentStatus {
+	case "trainee":
+		return "Trainee"
+	case "probation":
+		return "Probation"
+	case "contract":
+		return "Kontrak"
+	case "permanent":
+		return "Tetap"
+	case "daily_worker":
+		return "HL"
+	case "post_retirement_daily_worker":
+		return "HLPP"
+	default:
+		return c.EmploymentStatus
+	}
+}
+
 type Criterion struct {
+	EmploymentStatus  string
 	DepartmentID      uint64
 	DepartmentName    string
 	PositionIDs       string
@@ -31,11 +51,12 @@ type RubricOption struct {
 }
 
 type Input struct {
-	DepartmentID uint64
-	PositionIDs  []uint64
-	AspectID     uint64
-	Code         string
-	Description  string
-	Weight       float64
-	SortOrder    uint16
+	EmploymentStatus string
+	DepartmentID     uint64
+	PositionIDs      []uint64
+	AspectID         uint64
+	Code             string
+	Description      string
+	Weight           float64
+	SortOrder        uint16
 }

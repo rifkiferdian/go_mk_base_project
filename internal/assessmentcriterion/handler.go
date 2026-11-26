@@ -123,7 +123,7 @@ func formInput(c *gin.Context) (Input, bool) {
 	if e1 != nil || e2 != nil || e3 != nil || aspectID == 0 || order == 0 {
 		return Input{}, false
 	}
-	return Input{DepartmentID: positionIDs[0], PositionIDs: positionIDs, AspectID: aspectID, Code: c.PostForm("code"), Description: c.PostForm("description"), Weight: weight, SortOrder: uint16(order)}, true
+	return Input{EmploymentStatus: c.PostForm("employment_status"), DepartmentID: positionIDs[0], PositionIDs: positionIDs, AspectID: aspectID, Code: c.PostForm("code"), Description: c.PostForm("description"), Weight: weight, SortOrder: uint16(order)}, true
 }
 func routeID(c *gin.Context) (uint64, bool) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)

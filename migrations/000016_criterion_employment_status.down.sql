@@ -1,0 +1,1 @@
+ALTER TABLE trainee_assessment_criteria DROP COLUMN employment_status;

@@ -78,6 +78,14 @@ func (s *Service) normalize(ctx context.Context, input Input) (Input, error) {
 			return Input{}, ErrInvalid
 		}
 	}
+	if input.EmploymentStatus == "" {
+		input.EmploymentStatus = "trainee"
+	}
+	switch input.EmploymentStatus {
+	case "trainee", "probation", "contract", "permanent", "daily_worker", "post_retirement_daily_worker":
+	default:
+		return Input{}, ErrInvalid
+	}
 	input.Code = strings.ToLower(strings.TrimSpace(input.Code))
 	input.Description = strings.TrimSpace(input.Description)
 	if input.AspectID == 0 || !codePattern.MatchString(input.Code) || input.Description == "" || utf8.RuneCountInString(input.Description) > 2000 || input.Weight <= 0 || input.Weight > 999999.99 || math.IsNaN(input.Weight) || math.IsInf(input.Weight, 0) || input.SortOrder == 0 {

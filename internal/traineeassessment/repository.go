@@ -89,7 +89,7 @@ func (r *Repository) AssessmentYears(ctx context.Context, userID uint64, all boo
 	return years, rows.Err()
 }
 func (r *Repository) Trainees(ctx context.Context, userID uint64, all bool) ([]Trainee, error) {
-	q := `SELECT e.id,a.id,a.store_id,e.employee_number,e.name,p.name,d.name,s.name,d.id,p.id,DATE_FORMAT(a.started_at,'%Y-%m-%d') FROM employees e JOIN employee_profiles ep ON ep.employee_id=e.id AND ep.employment_status='trainee' JOIN employee_assignments a ON a.employee_id=e.id AND a.ended_at IS NULL JOIN positions p ON p.id=a.position_id JOIN departments d ON d.id=a.department_id JOIN stores s ON s.id=a.store_id`
+	q := `SELECT e.id,a.id,a.store_id,e.employee_number,e.name,p.name,d.name,s.name,d.id,p.id,DATE_FORMAT(a.started_at,'%Y-%m-%d'),ep.employment_status FROM employees e JOIN employee_profiles ep ON ep.employee_id=e.id JOIN employee_assignments a ON a.employee_id=e.id AND a.ended_at IS NULL JOIN positions p ON p.id=a.position_id JOIN departments d ON d.id=a.department_id JOIN stores s ON s.id=a.store_id`
 	args := []any{}
 	if !all {
 		q += ` JOIN users au ON au.id=? JOIN employee_assignments sa ON sa.employee_id=au.employee_id AND sa.ended_at IS NULL JOIN employee_reporting_lines rl ON rl.employee_assignment_id=a.id AND rl.supervisor_assignment_id=sa.id AND rl.ended_at IS NULL`
@@ -104,7 +104,7 @@ func (r *Repository) Trainees(ctx context.Context, userID uint64, all bool) ([]T
 	var out []Trainee
 	for rows.Next() {
 		var x Trainee
-		if e = rows.Scan(&x.EmployeeID, &x.AssignmentID, &x.StoreID, &x.EmployeeNumber, &x.Name, &x.PositionName, &x.DepartmentName, &x.StoreName, &x.OrganizationDepartmentID, &x.DepartmentID, &x.StartedAt); e != nil {
+		if e = rows.Scan(&x.EmployeeID, &x.AssignmentID, &x.StoreID, &x.EmployeeNumber, &x.Name, &x.PositionName, &x.DepartmentName, &x.StoreName, &x.OrganizationDepartmentID, &x.DepartmentID, &x.StartedAt, &x.EmploymentStatus); e != nil {
 			return nil, e
 		}
 		out = append(out, x)
@@ -112,7 +112,7 @@ func (r *Repository) Trainees(ctx context.Context, userID uint64, all bool) ([]T
 	return out, rows.Err()
 }
 func (r *Repository) Rubric(ctx context.Context) ([]Aspect, error) {
-	rows, e := r.db.QueryContext(ctx, `SELECT a.id,a.name,c.id,c.description,c.weight,COALESCE(r.score,0),COALESCE(r.finding_min,0),r.finding_max,COALESCE(r.description,''),b.id,cp.position_id,b.month_from,COALESCE(b.month_to,0),b.name FROM trainee_assessment_aspects a JOIN trainee_assessment_criteria c ON c.aspect_id=a.id JOIN trainee_assessment_criterion_positions cp ON cp.criterion_id=c.id JOIN trainee_assessment_rubrics b ON b.position_id=cp.position_id AND b.is_active=1 LEFT JOIN trainee_assessment_score_rules r ON r.criterion_id=c.id AND r.rubric_id=b.id ORDER BY cp.position_id,b.month_from,a.sort_order,a.id,c.sort_order,c.id,r.score DESC`)
+	rows, e := r.db.QueryContext(ctx, `SELECT a.id,a.name,c.id,c.description,c.weight,COALESCE(r.score,0),COALESCE(r.finding_min,0),r.finding_max,COALESCE(r.description,''),b.id,cp.position_id,b.month_from,COALESCE(b.month_to,0),b.name,c.employment_status FROM trainee_assessment_aspects a JOIN trainee_assessment_criteria c ON c.aspect_id=a.id JOIN trainee_assessment_criterion_positions cp ON cp.criterion_id=c.id JOIN trainee_assessment_rubrics b ON b.position_id=cp.position_id AND b.is_active=1 LEFT JOIN trainee_assessment_score_rules r ON r.criterion_id=c.id AND r.rubric_id=b.id ORDER BY cp.position_id,b.month_from,a.sort_order,a.id,c.sort_order,c.id,r.score DESC`)
 	if e != nil {
 		return nil, e
 	}
@@ -127,7 +127,7 @@ func (r *Repository) Rubric(ctx context.Context) ([]Aspect, error) {
 		var min int
 		var max sql.NullInt64
 		var meta Criterion
-		if e = rows.Scan(&aid, &an, &cid, &desc, &weight, &score, &min, &max, &rd, &meta.RubricID, &meta.DepartmentID, &meta.MonthFrom, &meta.MonthTo, &meta.RubricName); e != nil {
+		if e = rows.Scan(&aid, &an, &cid, &desc, &weight, &score, &min, &max, &rd, &meta.RubricID, &meta.DepartmentID, &meta.MonthFrom, &meta.MonthTo, &meta.RubricName, &meta.EmploymentStatus); e != nil {
 			return nil, e
 		}
 		if ai < 0 || out[ai].ID != aid {

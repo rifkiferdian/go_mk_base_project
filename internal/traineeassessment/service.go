@@ -123,6 +123,7 @@ func (s *Service) prepare(ctx context.Context, uid uint64, roles string, x *Inpu
 	for _, t := range trainees {
 		if t.EmployeeID == x.TraineeEmployeeID {
 			x.DepartmentID = t.DepartmentID
+			x.EmploymentStatus = t.EmploymentStatus
 		}
 	}
 	if x.DepartmentID == 0 {
@@ -150,7 +151,7 @@ func (s *Service) validate(ctx context.Context, x *Input) error {
 	expected := make(map[uint64]bool)
 	for _, aspect := range aspects {
 		for _, criterion := range aspect.Criteria {
-			if criterion.DepartmentID != x.DepartmentID || criterion.RubricID != x.RubricID {
+			if criterion.EmploymentStatus != x.EmploymentStatus || criterion.DepartmentID != x.DepartmentID || criterion.RubricID != x.RubricID {
 				continue
 			}
 			if len(criterion.Rules) != 5 {
