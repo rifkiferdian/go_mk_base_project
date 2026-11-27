@@ -103,12 +103,20 @@ func (h *Handler) Update(c *gin.Context) {
 	h.result(c, e, "updated")
 }
 func (h *Handler) Delete(c *gin.Context) {
+	u, _ := auth.CurrentUser(c)
+	if !allAccess(u.RoleName) {
+		c.Redirect(http.StatusSeeOther, "/errors/403")
+		return
+	}
+	if !auth.ValidCSRF(c, c.PostForm("csrf_token")) {
+		c.Redirect(http.StatusSeeOther, "/errors/419")
+		return
+	}
 	id, ok := routeID(c)
 	if !ok {
 		h.redirect(c, "error", "invalid")
 		return
 	}
-	u, _ := auth.CurrentUser(c)
 	uid, _ := strconv.ParseUint(u.ID, 10, 64)
 	h.result(c, h.service.Delete(c, id, uid, u.RoleName), "deleted")
 }
@@ -154,6 +162,7 @@ func (h *Handler) render(c *gin.Context, t string, d gin.H) {
 	}
 	d["AppName"], d["IsDashboard"], d["Authenticated"] = h.appName, true, true
 	d["ActivePage"], d["Section"] = "trainee-assessments", "Penilaian"
+	d["IsSuperadmin"] = allAccess(u.RoleName)
 	d["UserName"], d["UserInitials"], d["StoreName"], d["RoleName"] = u.Name, initials(u.Name), u.StoreName, u.RoleName
 	d["CSRFToken"], d["Menus"] = token, menus
 	d["SuccessMessage"], d["ErrorMessage"] = msg(c.Query("success")), msg(c.Query("error"))
@@ -203,5 +212,5 @@ func msg(c string) string {
 	if c == "no-rubric" {
 		return "Rubrik bagian dan bulan ini belum tersedia, belum lengkap, atau periodenya bertumpang tindih. Hubungi pengelola master penilaian."
 	}
-	return map[string]string{"created": "Penilaian berhasil disimpan.", "updated": "Penilaian berhasil diperbarui.", "deleted": "Draft penilaian berhasil dihapus.", "invalid": "Lengkapi data, semua nilai, dan catatan sebelum diajukan.", "duplicate": "Trainee tersebut sudah dinilai pada bulan pelatihan yang sama.", "final": "Penilaian yang sudah diajukan tidak dapat diubah.", "not-found": "Penilaian tidak ditemukan atau tidak dapat diakses.", "failed": "Operasi penilaian gagal diproses."}[c]
+	return map[string]string{"created": "Penilaian berhasil disimpan.", "updated": "Penilaian berhasil diperbarui.", "deleted": "Penilaian berhasil dihapus.", "invalid": "Lengkapi data, semua nilai, dan catatan sebelum diajukan.", "duplicate": "Trainee tersebut sudah dinilai pada bulan pelatihan yang sama.", "final": "Penilaian yang sudah diajukan tidak dapat diubah.", "not-found": "Penilaian tidak ditemukan atau tidak dapat diakses.", "failed": "Operasi penilaian gagal diproses."}[c]
 }

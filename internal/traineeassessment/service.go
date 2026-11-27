@@ -101,6 +101,9 @@ func (s *Service) Update(c context.Context, id, uid uint64, name, roles string, 
 	return s.saveErr(s.repository.Update(c, id, uid, name, x, allAccess(roles)))
 }
 func (s *Service) Delete(c context.Context, id, uid uint64, roles string) error {
+	if !allAccess(roles) {
+		return ErrInvalid
+	}
 	return s.repository.Delete(c, id, uid, allAccess(roles))
 }
 func (s *Service) saveErr(id uint64, e error) (uint64, error) {

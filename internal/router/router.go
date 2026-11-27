@@ -21,6 +21,7 @@ import (
 	"mksiaga/internal/config"
 	"mksiaga/internal/dashboard"
 	"mksiaga/internal/employee"
+	"mksiaga/internal/employeereport"
 	"mksiaga/internal/httperror"
 	"mksiaga/internal/navigation"
 	"mksiaga/internal/organization"
@@ -118,6 +119,10 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 		authorized.GET("/assessments/:id/edit", auth.RequirePermission(db, "trainee_assessments.update"), assessmentHandler.Edit)
 		authorized.POST("/assessments/:id/update", auth.RequirePermission(db, "trainee_assessments.update"), assessmentHandler.Update)
 		authorized.POST("/assessments/:id/delete", auth.RequirePermission(db, "trainee_assessments.delete"), assessmentHandler.Delete)
+		employeeReportHandler := employeereport.NewHandler(cfg.AppName, db, navigationService)
+		authorized.GET("/reports/employees", auth.RequirePermission(db, "employee_reports.view"), employeeReportHandler.Index)
+		authorized.POST("/reports/employees/:id/assessments/:assessmentID/delete", auth.RequirePermission(db, "trainee_assessments.delete"), employeeReportHandler.DeleteAssessment)
+		authorized.GET("/reports/employees/:id", auth.RequirePermission(db, "employee_reports.view"), employeeReportHandler.Detail)
 		authorized.GET("/reports/trainee-assessments", auth.RequirePermission(db, "trainee_assessment_reports.view"), assessmentReportHandler.Index)
 		authorized.GET("/profile/sessions", sessionHandler.Index)
 		authorized.POST("/profile/sessions/revoke-others", sessionHandler.RevokeOthers)

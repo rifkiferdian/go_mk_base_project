@@ -307,7 +307,7 @@ func (r *Repository) Delete(ctx context.Context, id, userID uint64, all bool) er
 	if _, e := r.Assessment(ctx, id, userID, all); e != nil {
 		return e
 	}
-	res, e := r.db.ExecContext(ctx, `DELETE FROM trainee_assessments WHERE id=? AND status='draft'`, id)
+	res, e := r.db.ExecContext(ctx, `DELETE FROM trainee_assessments WHERE id=? AND (? OR status='draft')`, id, all)
 	if e != nil {
 		return e
 	}

@@ -950,6 +950,18 @@ document.querySelectorAll("[data-access-filter]").forEach((filter) => {
   employment?.addEventListener("change", () => applyAccessFilter(true));
   status?.addEventListener("change", () => applyAccessFilter(true));
   supervisor?.addEventListener(supervisor.matches("select") ? "change" : "input", () => applyAccessFilter(true));
+  filter.querySelector("[data-filter-reset]")?.addEventListener("click", () => {
+    [search, guard, extra, department, status, employment, supervisor, questionGroup].forEach(control => {
+      if (control) control.value = "";
+    });
+    updateDependentExtra();
+    if (questionGroup) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("group_id");
+      history.replaceState(null, "", url);
+    }
+    applyAccessFilter(true);
+  });
   applyAccessFilter();
 });
 
@@ -1161,3 +1173,62 @@ if (window.location.pathname === "/master/assessment-criteria") {
     history.replaceState(null, "", window.location.pathname + "?" + params.toString());
   }
 }
+
+document.querySelectorAll("[data-employee-chart]").forEach(chart => {
+  const records=[...chart.querySelectorAll("[data-chart-point]")].sort((a,b)=>Number(a.dataset.month)-Number(b.dataset.month)||a.dataset.date.localeCompare(b.dataset.date));
+  const keyFor=q=>JSON.stringify([q.dataset.criterion,q.dataset.question]);
+  const questions=new Map();
+  records.forEach(r=>r.querySelectorAll("[data-question-point]").forEach(q=>{if(!questions.has(keyFor(q)))questions.set(keyFor(q),q.dataset);}));
+  const palette=["#ea580c","#2563eb","#059669","#7c3aed","#db2777","#0891b2","#a16207","#475569","#dc2626","#4f46e5"];
+  const entries=[...questions].map(([key,q],i)=>({key,q,color:palette[i%palette.length],visible:true}));
+  const legend=chart.querySelector("[data-chart-legend]"),canvas=chart.querySelector("[data-chart-canvas]");
+  const text=(tag,cls,value)=>{const n=document.createElement(tag);n.className=cls;n.textContent=value;return n;};
+  const render=()=>{
+    canvas.replaceChildren();
+    const width=Math.max(480,records.length*60),height=210,left=35,right=width-20,top=20,bottom=150;
+    const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
+    svg.setAttribute("viewBox","0 0 "+width+" "+height);svg.setAttribute("role","img");
+    svg.setAttribute("aria-label","Perkembangan skor seluruh pertanyaan per bulan pelatihan. Setiap warna mewakili satu pertanyaan.");
+    svg.style.width="100%";svg.style.minWidth="360px";svg.style.maxHeight="210px";
+    const el=(tag,attrs,label,parent=svg)=>{const n=document.createElementNS(svg.namespaceURI,tag);Object.entries(attrs).forEach(([k,v])=>n.setAttribute(k,String(v)));if(label!==undefined)n.textContent=label;parent.append(n);return n;};
+    const y=score=>bottom-(score-1)*(bottom-top)/4;
+    const months=records.map(r=>Number(r.dataset.month)),min=Math.min(...months),max=Math.max(...months);
+    const x=month=>max===min?(left+right)/2:left+(month-min)/(max-min)*(right-left);
+    for(let s=1;s<=5;s++){el("line",{x1:left,y1:y(s),x2:right,y2:y(s),stroke:"#e2e8f0","stroke-dasharray":"4 4"});el("text",{x:25,y:y(s)+4,fill:"#94a3b8","font-size":11},s);}
+    [...new Set(months)].forEach(m=>{el("text",{x:x(m),y:177,"text-anchor":"middle",fill:"#64748b","font-size":10},"Bulan "+m);});
+    el("text",{x:(left+right)/2,y:202,"text-anchor":"middle",fill:"#94a3b8","font-size":9},"Bulan pelatihan · skala nilai 1–5");
+    entries.filter(e=>e.visible).forEach((entry,index)=>{
+      const layer=el("g",{"data-series":entry.key});
+      let segment=[];
+      const flush=()=>{if(segment.length>1)el("polyline",{points:segment.join(" "),fill:"none",stroke:entry.color,"stroke-width":2.5,"stroke-linejoin":"round","stroke-dasharray":index%3===0?"":index%3===1?"7 3":"2 3"},undefined,layer);segment=[];};
+      const dots=[];
+      records.forEach(r=>{
+        const q=[...r.querySelectorAll("[data-question-point]")].find(q=>keyFor(q)===entry.key);
+        const v=q?.dataset.score,score=v===undefined||v===""?null:Number(v);
+        if(score===null||!Number.isFinite(score)){flush();return;}
+        const cx=x(Number(r.dataset.month)),cy=y(score);
+        segment.push(cx+","+cy);dots.push({r,score,cx,cy});
+      });flush();
+      dots.forEach(({r,score,cx,cy})=>{
+        const circle=el("circle",{cx,cy,r:4,fill:entry.color,stroke:"white","stroke-width":1,tabindex:0},undefined,layer);
+        el("title",{},entry.q.question+" · Bulan "+r.dataset.month+" · "+r.dataset.date+" · Nilai "+score+" · "+r.dataset.period,circle);
+        circle.addEventListener("focus",()=>{chart.querySelector("[data-chart-info]").textContent=entry.q.question+" — Bulan "+r.dataset.month+": nilai "+score;});
+        circle.addEventListener("mouseenter",()=>{chart.querySelector("[data-chart-info]").textContent=entry.q.question+" — Bulan "+r.dataset.month+": nilai "+score+" ("+r.dataset.date+")";});
+      });
+    });
+    canvas.append(svg);
+  };
+  entries.forEach((entry,i)=>{
+    const button=text("button","flex cursor-pointer items-start gap-2 rounded-xl border border-slate-200 bg-white p-3 text-left text-xs leading-5 text-slate-600 hover:bg-slate-50","");
+    button.type="button";button.setAttribute("aria-pressed","true");
+    const dot=text("span","mt-1 size-2.5 shrink-0 rounded-full","");dot.style.backgroundColor=entry.color;
+    button.append(dot,text("span","",String(i+1)+". "+entry.q.question));
+    button.addEventListener("click",()=>{entry.visible=!entry.visible;button.setAttribute("aria-pressed",String(entry.visible));button.classList.toggle("opacity-40",!entry.visible);render();});
+    legend.append(button);
+  });
+  chart.querySelector("[data-chart-show-all]")?.addEventListener("click",()=>{
+    entries.forEach(e=>e.visible=true);legend.querySelectorAll("button").forEach(b=>{b.setAttribute("aria-pressed","true");b.classList.remove("opacity-40");});render();
+  });
+  if(!records.length){canvas.textContent="Belum ada data penilaian.";return;}
+  render();
+});

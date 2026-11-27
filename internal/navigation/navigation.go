@@ -34,12 +34,12 @@ type definition struct {
 }
 
 var definitions = []definition{
-	{group: "Pengaturan", parent: "assessment-settings", key: "question-groups", label: "Kelompok Soal", url: "/master/question-groups", permission: "question_groups.view"},
 	{group: "Menu utama", key: "dashboard", label: "Dashboard", url: "/"},
 	{group: "Penilaian", key: "trainee-assessments", label: "Penilaian Trainee", url: "/assessments", permission: "trainee_assessments.view"},
 	{group: "Kepegawaian", key: "placement-change-requests", label: "Pengajuan Penempatan", url: "/placement-change-requests", permission: "placement_change_requests.view"},
 	{group: "Kepegawaian", key: "my-team", label: "Tim Saya", url: "/my-team", permission: "team.view"},
 	{group: "Laporan", key: "trainee-assessment-reports", label: "Laporan Penilaian", url: "/reports/trainee-assessments", permission: "trainee_assessment_reports.view"},
+	{group: "Laporan", key: "employee-reports", label: "Laporan per Karyawan", url: "/reports/employees", permission: "employee_reports.view"},
 	{group: "Master Data", parent: "master", key: "stores", label: "Store", url: "/master/stores", permission: "stores.view"},
 	{group: "Master Data", parent: "master", key: "departments", label: "Bagian", url: "/master/departments", permission: "departments.view"},
 	{group: "Master Data", parent: "master", key: "positions", label: "Jabatan", url: "/master/positions", permission: "positions.view"},
@@ -48,6 +48,7 @@ var definitions = []definition{
 	{group: "Master Data", parent: "master", key: "employee-assignments", label: "Penempatan Karyawan", url: "/master/employee-assignments", permission: "employee_assignments.view"},
 	{group: "Master Data", parent: "master", key: "employee-reporting-lines", label: "Struktur Supervisi", url: "/master/employee-reporting-lines", permission: "employee_reporting_lines.view"},
 	{group: "Pengaturan", parent: "assessment-settings", key: "assessment-aspects", label: "Aspek Penilaian", url: "/master/assessment-aspects", permission: "assessment_aspects.view"},
+	{group: "Pengaturan", parent: "assessment-settings", key: "question-groups", label: "Kelompok Soal", url: "/master/question-groups", permission: "question_groups.view"},
 	{group: "Pengaturan", parent: "assessment-settings", key: "assessment-criteria", label: "Subaspek Penilaian", url: "/master/assessment-criteria", permission: "assessment_criteria.view"},
 	{group: "Pengaturan", parent: "assessment-settings", key: "assessment-score-rules", label: "Aturan Skor", url: "/master/assessment-score-rules", permission: "assessment_score_rules.view"},
 	{group: "Pengaturan", parent: "assessment-settings", key: "assessment-rubrics", label: "Periode Rubrik", url: "/master/assessment-rubrics", permission: "assessment_rubrics.view"},
