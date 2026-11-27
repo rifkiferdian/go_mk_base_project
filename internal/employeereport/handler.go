@@ -9,6 +9,7 @@ import (
 	"mksiaga/internal/auth"
 	"mksiaga/internal/navigation"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -56,6 +57,7 @@ type Detail struct {
 	Score                  sql.NullInt64
 }
 type Assessment struct {
+	CreatedAt                                                                    string
 	ID                                                                           uint64
 	Date, Calendar, Position, Department, Store, Assessor, Notes, Period, Rating string
 	Month                                                                        int
@@ -66,6 +68,23 @@ type PositionReport struct {
 	Key, Name           string
 	Assessments         []Assessment
 	First, Last, Change float64
+}
+
+func (a Assessment) TotalScore() float64 {
+	total := 0.0
+	for _, d := range a.Details {
+		if d.Score.Valid {
+			total += float64(d.Score.Int64) * d.Weight
+		}
+	}
+	return total
+}
+func (a Assessment) MaximumScore() float64 {
+	total := 0.0
+	for _, d := range a.Details {
+		total += 5 * d.Weight
+	}
+	return total
 }
 
 func access(c *gin.Context) (uint64, bool) {
@@ -90,7 +109,7 @@ func (h *Handler) employees(ctx context.Context, uid uint64, admin bool) ([]Empl
 	if !admin {
 		assessmentScope = " AND EXISTS(SELECT 1 FROM employee_reporting_lines rl JOIN employee_assignments sa ON sa.id=rl.supervisor_assignment_id JOIN users u ON u.employee_id=sa.employee_id AND u.id=" + strconv.FormatUint(uid, 10) + " WHERE rl.employee_assignment_id=a.trainee_assignment_id AND rl.started_at<=a.assessment_date AND (rl.ended_at IS NULL OR rl.ended_at>=a.assessment_date))"
 	}
-	rows, err := h.db.QueryContext(ctx, `SELECT COALESCE((SELECT GROUP_CONCAT(DISTINCT CONCAT(se.name,' (',se.employee_number,')') ORDER BY se.name SEPARATOR ', ') FROM employee_reporting_lines rl JOIN employee_assignments sa ON sa.id=rl.supervisor_assignment_id AND sa.ended_at IS NULL JOIN employees se ON se.id=sa.employee_id WHERE rl.employee_assignment_id=ca.id AND rl.ended_at IS NULL),'Belum ada atasan'),e.id,e.employee_number,e.name,COALESCE(p.name,'Belum ditempatkan'),COALESCE(d.name,''),COALESCE(s.name,''),COALESCE(ep.employment_status,''),(SELECT COUNT(*) FROM trainee_assessments a WHERE a.trainee_employee_id=e.id AND a.status='final'`+assessmentScope+`),COALESCE((SELECT DATE_FORMAT(MAX(a.assessment_date),'%Y-%m-%d') FROM trainee_assessments a WHERE a.trainee_employee_id=e.id AND a.status='final'`+assessmentScope+`),'') FROM employees e LEFT JOIN employee_profiles ep ON ep.employee_id=e.id LEFT JOIN employee_assignments ca ON ca.employee_id=e.id AND ca.ended_at IS NULL LEFT JOIN positions p ON p.id=ca.position_id LEFT JOIN departments d ON d.id=ca.department_id LEFT JOIN stores s ON s.id=ca.store_id WHERE 1=1`+filter+" ORDER BY e.name", args...)
+	rows, err := h.db.QueryContext(ctx, `SELECT COALESCE((SELECT GROUP_CONCAT(DISTINCT CONCAT(se.name,' (',se.employee_number,')') ORDER BY se.name SEPARATOR ', ') FROM employee_reporting_lines rl JOIN employee_assignments sa ON sa.id=rl.supervisor_assignment_id AND sa.ended_at IS NULL JOIN employees se ON se.id=sa.employee_id WHERE rl.employee_assignment_id=ca.id AND rl.ended_at IS NULL),'Belum ada atasan'),e.id,e.employee_number,e.name,COALESCE(p.name,'Belum ditempatkan'),COALESCE(d.name,''),COALESCE(s.name,''),COALESCE(ep.employment_status,''),(SELECT COUNT(*) FROM trainee_assessments a WHERE a.trainee_employee_id=e.id AND a.status='final'`+assessmentScope+`),COALESCE((SELECT DATE_FORMAT(MAX(a.assessment_date),'%Y-%m-%d') FROM trainee_assessments a WHERE a.trainee_employee_id=e.id AND a.status='final'`+assessmentScope+`),'') FROM employees e LEFT JOIN employee_profiles ep ON ep.employee_id=e.id LEFT JOIN employee_assignments ca ON ca.employee_id=e.id AND ca.ended_at IS NULL LEFT JOIN positions p ON p.id=ca.position_id LEFT JOIN departments d ON d.id=ca.department_id LEFT JOIN stores s ON s.id=ca.store_id WHERE 1=1`+filter+` ORDER BY (SELECT MAX(a.created_at) FROM trainee_assessments a WHERE a.trainee_employee_id=e.id AND a.status='final'`+assessmentScope+`) DESC,e.name,e.id`, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -154,6 +173,22 @@ func (h *Handler) Detail(c *gin.Context) {
 		return
 	}
 	groups := groupByPosition(items)
+	for i := range groups {
+		sort.SliceStable(groups[i].Assessments, func(a, b int) bool {
+			x, y := groups[i].Assessments[a], groups[i].Assessments[b]
+			if x.CreatedAt == y.CreatedAt {
+				return x.ID > y.ID
+			}
+			return x.CreatedAt > y.CreatedAt
+		})
+	}
+	sort.SliceStable(groups, func(a, b int) bool {
+		x, y := groups[a].Assessments[0], groups[b].Assessments[0]
+		if x.CreatedAt == y.CreatedAt {
+			return x.ID > y.ID
+		}
+		return x.CreatedAt > y.CreatedAt
+	})
 	h.render(c, "detail", gin.H{"Employee": employee, "Positions": groups, "AssessmentCount": len(items)})
 }
 func (h *Handler) assessments(ctx context.Context, id, uid uint64, admin bool) ([]Assessment, error) {
@@ -163,14 +198,14 @@ func (h *Handler) assessments(ctx context.Context, id, uid uint64, admin bool) (
 		extra = ` AND EXISTS(SELECT 1 FROM employee_reporting_lines rl JOIN employee_assignments sa ON sa.id=rl.supervisor_assignment_id JOIN users u ON u.employee_id=sa.employee_id AND u.id=? WHERE rl.employee_assignment_id=a.trainee_assignment_id AND rl.started_at<=a.assessment_date AND (rl.ended_at IS NULL OR rl.ended_at>=a.assessment_date))`
 		args = append(args, uid)
 	}
-	rows, err := h.db.QueryContext(ctx, `SELECT a.id,DATE_FORMAT(a.assessment_date,'%Y-%m-%d'),DATE_FORMAT(a.assessment_date,'%Y-%m'),COALESCE(a.trainee_position_name,'Jabatan tidak tercatat'),a.department_name,a.store_name,a.assessor_name,COALESCE(a.notes,''),COALESCE(r.name,'Periode tidak tercatat'),a.training_month,COALESCE(v.average_score,0),COALESCE(v.rating,'') FROM trainee_assessments a LEFT JOIN trainee_assessment_rubrics r ON r.id=a.rubric_id LEFT JOIN trainee_assessment_results v ON v.assessment_id=a.id WHERE a.trainee_employee_id=? AND a.status='final'`+extra+" ORDER BY a.assessment_date,a.id", args...)
+	rows, err := h.db.QueryContext(ctx, `SELECT DATE_FORMAT(a.created_at,'%Y-%m-%d %H:%i:%s.%f'),a.id,DATE_FORMAT(a.assessment_date,'%Y-%m-%d'),DATE_FORMAT(a.assessment_date,'%Y-%m'),COALESCE(a.trainee_position_name,'Jabatan tidak tercatat'),a.department_name,a.store_name,a.assessor_name,COALESCE(a.notes,''),COALESCE(r.name,'Periode tidak tercatat'),a.training_month,COALESCE(v.average_score,0),COALESCE(v.rating,'') FROM trainee_assessments a LEFT JOIN trainee_assessment_rubrics r ON r.id=a.rubric_id LEFT JOIN trainee_assessment_results v ON v.assessment_id=a.id WHERE a.trainee_employee_id=? AND a.status='final'`+extra+" ORDER BY a.assessment_date,a.id", args...)
 	if err != nil {
 		return nil, err
 	}
 	var out []Assessment
 	for rows.Next() {
 		var x Assessment
-		if err = rows.Scan(&x.ID, &x.Date, &x.Calendar, &x.Position, &x.Department, &x.Store, &x.Assessor, &x.Notes, &x.Period, &x.Month, &x.Average, &x.Rating); err != nil {
+		if err = rows.Scan(&x.CreatedAt, &x.ID, &x.Date, &x.Calendar, &x.Position, &x.Department, &x.Store, &x.Assessor, &x.Notes, &x.Period, &x.Month, &x.Average, &x.Rating); err != nil {
 			rows.Close()
 			return nil, err
 		}

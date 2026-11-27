@@ -1232,3 +1232,29 @@ document.querySelectorAll("[data-employee-chart]").forEach(chart => {
   if(!records.length){canvas.textContent="Belum ada data penilaian.";return;}
   render();
 });
+
+document.querySelectorAll("[data-employee-chart]").forEach(panel=>{
+  const points=[...panel.querySelectorAll("[data-chart-point]")].map(p=>p.dataset).sort((a,b)=>Number(a.month)-Number(b.month)||a.date.localeCompare(b.date));
+  const canvas=panel.querySelector("[data-total-chart]");
+  if(!canvas||!points.length)return;
+  const width=Math.max(400,points.length*65),height=210,left=35,right=width-25,top=25,bottom=150;
+  const maximum=Math.max(1,...points.map(p=>Number(p.maximum)||0),...points.map(p=>Number(p.total)||0));
+  const months=points.map(p=>Number(p.month)),first=Math.min(...months),last=Math.max(...months);
+  const x=m=>first===last?(left+right)/2:left+(m-first)/(last-first)*(right-left);
+  const y=v=>bottom-v/maximum*(bottom-top);
+  const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
+  svg.setAttribute("viewBox","0 0 "+width+" "+height);svg.setAttribute("role","img");svg.setAttribute("aria-label","Total nilai berbobot per bulan pelatihan.");
+  svg.style.width="100%";svg.style.minWidth="320px";svg.style.maxHeight="210px";
+  const el=(tag,attrs,label,parent=svg)=>{const n=document.createElementNS(svg.namespaceURI,tag);Object.entries(attrs).forEach(([k,v])=>n.setAttribute(k,String(v)));if(label!==undefined)n.textContent=label;parent.append(n);return n;};
+  for(let i=0;i<=4;i++){const v=maximum*i/4;el("line",{x1:left,y1:y(v),x2:right,y2:y(v),stroke:"#e2e8f0","stroke-dasharray":"4 4"});el("text",{x:2,y:y(v)+4,fill:"#94a3b8","font-size":9},Number(v.toFixed(1)));}
+  el("polyline",{points:points.map(p=>x(Number(p.month))+","+y(Number(p.total))).join(" "),fill:"none",stroke:"#2563eb","stroke-width":2.5});
+  points.forEach(p=>{
+    const cx=x(Number(p.month)),cy=y(Number(p.total));
+    const dot=el("circle",{cx,cy,r:4,fill:"#2563eb",stroke:"white","stroke-width":1,tabindex:0});
+    el("title",{},p.date+" · Bulan "+p.month+" · Total "+p.total+" / "+p.maximum+" · "+p.period,dot);
+    el("text",{x:cx,y:cy-10,"text-anchor":"middle",fill:"#2563eb","font-size":11,"font-weight":"bold"},Number(p.total).toFixed(2));
+  });
+  [...new Set(months)].forEach(m=>el("text",{x:x(m),y:178,"text-anchor":"middle",fill:"#64748b","font-size":9},"Bulan "+m));
+  el("text",{x:(left+right)/2,y:202,"text-anchor":"middle",fill:"#94a3b8","font-size":9},"Total nilai × bobot");
+  canvas.append(svg);
+});
