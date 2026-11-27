@@ -603,3 +603,38 @@ dialog[id^="assessmentDetail"] > div::-webkit-scrollbar-thumb {
     white-space: nowrap;
   }
 }
+/* Decorative snow is rendered only on the superadmin dashboard. */
+.dashboard-snow {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+  contain: strict;
+}
+.dashboard-snow span {
+  position: absolute;
+  top: -20px;
+  left: var(--snow-x);
+  width: var(--snow-size);
+  height: var(--snow-size);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fed7aa 15%, #fb923c 65%, #ea580c 100%);
+  box-shadow: 0 0 5px #fb923c66;
+  opacity: 0;
+  animation: dashboard-snowfall var(--snow-duration) var(--snow-delay) linear infinite;
+}
+@keyframes dashboard-snowfall {
+  0% { transform: translate3d(0, -10px, 0); opacity: 0; }
+  8% { opacity: .65; }
+  50% { transform: translate3d(var(--snow-drift), 50vh, 0); opacity: .5; }
+  92% { opacity: .6; }
+  100% { transform: translate3d(0, calc(100vh + 30px), 0); opacity: 0; }
+}
+@media (max-width: 640px) {
+  .dashboard-snow span:nth-child(n+19) { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-snow { display: none; }
+}
