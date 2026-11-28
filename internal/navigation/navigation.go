@@ -53,6 +53,9 @@ var definitions = []definition{
 	{group: "Pengaturan", parent: "assessment-settings", key: "assessment-score-rules", label: "Aturan Skor", url: "/master/assessment-score-rules", permission: "assessment_score_rules.view"},
 	{group: "Pengaturan", parent: "assessment-settings", key: "assessment-rubrics", label: "Periode Rubrik", url: "/master/assessment-rubrics", permission: "assessment_rubrics.view"},
 	{group: "Pengaturan", parent: "assessment-settings", key: "assessment-result-categories", label: "Kategori Hasil", url: "/master/assessment-result-categories", permission: "assessment_result_categories.view"},
+	{group: "Pengaturan", parent: "general-assessment-settings", key: "hrd-assessments", label: "Penilaian Bulanan HRD", url: "/hrd-assessments", permission: "hrd_assessments.view"},
+	{group: "Pengaturan", parent: "general-assessment-settings", key: "hrd-categories", label: "Kategori Potongan HRD", url: "/master/hrd-categories", permission: "hrd_categories.view"},
+	{group: "Pengaturan", parent: "general-assessment-settings", key: "hrd-rules", label: "Aturan Potongan HRD", url: "/master/hrd-rules", permission: "hrd_rules.view"},
 	{group: "Pengelolaan", parent: "access", key: "users", label: "User", url: "/settings/users", permission: "users.view"},
 	{group: "Pengelolaan", parent: "access", key: "roles", label: "Role", url: "/settings/roles", permission: "roles.view"},
 	{group: "Pengelolaan", parent: "access", key: "permissions", label: "Permission", url: "/settings/permissions", permission: "permissions.view"},
@@ -150,7 +153,20 @@ func (s *Service) Menus(ctx context.Context, user auth.SessionUser, activePage s
 		for _, item := range assessmentItems {
 			open = open || item.Active
 		}
-		groups[index].Items = append(groups[index].Items, Item{Key: "assessment-settings", Label: "Pengaturan Penilaian", Open: open, Active: open, Children: assessmentItems})
+		groups[index].Items = append(groups[index].Items, Item{Key: "assessment-settings", Label: "Penilaian Khusus", Open: open, Active: open, Children: assessmentItems})
+	}
+	if items := children["general-assessment-settings"]; len(items) > 0 {
+		index, exists := indexes["Pengaturan"]
+		if !exists {
+			index = len(groups)
+			indexes["Pengaturan"] = index
+			groups = append(groups, Group{Label: "Pengaturan"})
+		}
+		open := false
+		for _, item := range items {
+			open = open || item.Active
+		}
+		groups[index].Items = append(groups[index].Items, Item{Key: "general-assessment-settings", Label: "Penilaian Umum", Open: open, Active: open, Children: items})
 	}
 	return groups, nil
 }

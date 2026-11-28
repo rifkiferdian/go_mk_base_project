@@ -638,3 +638,12 @@ dialog[id^="assessmentDetail"] > div::-webkit-scrollbar-thumb {
 @media (prefers-reduced-motion: reduce) {
   .dashboard-snow { display: none; }
 }
+@media (max-width: 767px) {
+  .hrd-input-table { min-width: 0; }
+  .hrd-input-table thead { display: none; }
+  .hrd-input-table tbody, .hrd-input-table tr, .hrd-input-table td { display: block; }
+  .hrd-input-table tr { position: relative; padding: 1rem; }
+  .hrd-input-table td { padding: .5rem 0; }
+  .hrd-input-table td:first-child { position: absolute; right: 1rem; top: .75rem; color: #cbd5e1; }
+  .hrd-input-table td:nth-child(2) { padding-right: 2rem; font-size: .875rem; }
+}

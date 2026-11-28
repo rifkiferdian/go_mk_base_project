@@ -22,6 +22,8 @@ import (
 	"mksiaga/internal/dashboard"
 	"mksiaga/internal/employee"
 	"mksiaga/internal/employeereport"
+	"mksiaga/internal/hrdassessment"
+	"mksiaga/internal/hrdmaster"
 	"mksiaga/internal/httperror"
 	"mksiaga/internal/navigation"
 	"mksiaga/internal/organization"
@@ -105,6 +107,13 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 		sessionHandler := sessionmanagement.NewHandler(cfg.AppName, sessionmanagement.NewService(sessionmanagement.NewRepository(db)), navigationService)
 		userHandler := userManagement.NewHandler(cfg.AppName, userManagement.NewService(userManagement.NewRepository(db)), navigationService)
 		teamHandler := team.NewHandler(cfg.AppName, team.NewRepository(db), navigationService)
+		hrdAssessmentHandler := hrdassessment.NewHandler(cfg.AppName, db, navigationService)
+		authorized.GET("/hrd-assessments", auth.RequirePermission(db, "hrd_assessments.view"), hrdAssessmentHandler.Index)
+		authorized.GET("/hrd-assessments/new", auth.RequirePermission(db, "hrd_assessments.manage"), hrdAssessmentHandler.Form)
+		authorized.GET("/hrd-assessments/:id", auth.RequirePermission(db, "hrd_assessments.view"), hrdAssessmentHandler.Detail)
+		authorized.GET("/hrd-assessments/:id/edit", auth.RequirePermission(db, "hrd_assessments.manage"), hrdAssessmentHandler.Form)
+		authorized.POST("/hrd-assessments", auth.RequirePermission(db, "hrd_assessments.manage"), hrdAssessmentHandler.Save)
+		authorized.POST("/hrd-assessments/:id/update", auth.RequirePermission(db, "hrd_assessments.manage"), hrdAssessmentHandler.Save)
 		authorized.GET("/profile", profileHandler.Index)
 		authorized.GET("/placement-change-requests", auth.RequirePermission(db, "placement_change_requests.view"), placementRequestHandler.Index)
 		authorized.POST("/placement-change-requests", auth.RequirePermission(db, "placement_change_requests.create"), placementRequestHandler.Create)
@@ -145,6 +154,15 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 		settings.POST("/permissions/:id/update", auth.RequirePermission(db, "permissions.update"), accessHandler.UpdatePermission)
 		settings.POST("/permissions/:id/delete", auth.RequirePermission(db, "permissions.delete"), accessHandler.DeletePermission)
 		master := authorized.Group("/master")
+		hrdHandler := hrdmaster.NewHandler(cfg.AppName, db, navigationService)
+		master.GET("/hrd-categories", auth.RequirePermission(db, "hrd_categories.view"), hrdHandler.Categories)
+		master.POST("/hrd-categories", auth.RequirePermission(db, "hrd_categories.manage"), hrdHandler.SaveCategory)
+		master.POST("/hrd-categories/:id/update", auth.RequirePermission(db, "hrd_categories.manage"), hrdHandler.SaveCategory)
+		master.POST("/hrd-categories/:id/delete", auth.RequirePermission(db, "hrd_categories.manage"), hrdHandler.DeleteCategory)
+		master.GET("/hrd-rules", auth.RequirePermission(db, "hrd_rules.view"), hrdHandler.Rules)
+		master.POST("/hrd-rules", auth.RequirePermission(db, "hrd_rules.manage"), hrdHandler.SaveRule)
+		master.POST("/hrd-rules/:id/update", auth.RequirePermission(db, "hrd_rules.manage"), hrdHandler.SaveRule)
+		master.POST("/hrd-rules/:id/delete", auth.RequirePermission(db, "hrd_rules.manage"), hrdHandler.DeleteRule)
 		groupHandler := questiongroup.NewHandler(cfg.AppName, db, navigationService)
 		master.GET("/question-groups", auth.RequirePermission(db, "question_groups.view"), groupHandler.Index)
 		master.POST("/question-groups", auth.RequirePermission(db, "question_groups.manage"), groupHandler.Save)

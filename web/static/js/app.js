@@ -20,6 +20,32 @@ document.querySelectorAll("[data-question-group-filter]").forEach((filter) => {
   apply();
 });
 
+document.querySelectorAll("[data-hrd-input]").forEach(form => {
+  const rows = [...form.querySelectorAll("[data-hrd-category]")];
+  const update = () => {
+    const filled = rows.filter(row => row.querySelector('input[type="radio"]:checked')).length;
+    form.querySelector("[data-hrd-progress]").textContent = filled + " / " + rows.length + " diperiksa";
+  };
+  rows.forEach(row => {
+    row.addEventListener("change", update);
+    row.querySelector("[data-hrd-clear]").addEventListener("click", () => {
+      row.querySelectorAll('input[type="radio"]').forEach(input => input.checked = false);
+      update();
+    });
+  });
+  form.addEventListener("submit", event => {
+    if (event.submitter?.value !== "final") return;
+    const empty = rows.find(row => !row.querySelector('input[type="radio"]:checked'));
+    if (empty) {
+      event.preventDefault();
+      empty.scrollIntoView({ behavior: "smooth", block: "center" });
+      empty.querySelector('input[type="radio"]').focus({preventScroll:true});
+      form.querySelector("[data-hrd-progress]").textContent = "Lengkapi seluruh kategori sebelum final.";
+    }
+  });
+  update();
+});
+
 document.querySelectorAll("[data-password-toggle]").forEach((button) => {
   button.addEventListener("click", () => {
     const input = document.getElementById(button.dataset.target);

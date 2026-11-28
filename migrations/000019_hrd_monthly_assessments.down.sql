@@ -1,0 +1,2 @@
+DROP TABLE hrd_monthly_assessment_details;
+DROP TABLE hrd_monthly_assessments;

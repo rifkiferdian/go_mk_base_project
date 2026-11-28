@@ -1,0 +1,38 @@
+CREATE TABLE hrd_monthly_assessments (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ employee_id BIGINT UNSIGNED NOT NULL,
+ period_month DATE NOT NULL,
+ employee_number VARCHAR(50) NOT NULL,
+ employee_name VARCHAR(150) NOT NULL,
+ position_name VARCHAR(150) NOT NULL DEFAULT '',
+ department_name VARCHAR(150) NOT NULL DEFAULT '',
+ store_name VARCHAR(150) NOT NULL DEFAULT '',
+ employment_status VARCHAR(50) NOT NULL DEFAULT '',
+ assessor_user_id BIGINT UNSIGNED NOT NULL,
+ assessor_name VARCHAR(150) NOT NULL,
+ status ENUM('draft','final') NOT NULL DEFAULT 'draft',
+ notes TEXT NOT NULL,
+ created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+ updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+ finalized_at DATETIME(6) NULL,
+ UNIQUE KEY hrd_employee_month(employee_id,period_month),
+ FOREIGN KEY(employee_id) REFERENCES employees(id),
+ FOREIGN KEY(assessor_user_id) REFERENCES users(id)
+);
+CREATE TABLE hrd_monthly_assessment_details (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ assessment_id BIGINT UNSIGNED NOT NULL,
+ category_id BIGINT UNSIGNED NULL,
+ rule_id BIGINT UNSIGNED NULL,
+ category_name VARCHAR(255) NOT NULL,
+ category_description TEXT NOT NULL,
+ condition_text VARCHAR(1000) NOT NULL,
+ deduction_percentage DECIMAL(5,2) NULL,
+ is_sanction BOOLEAN NOT NULL DEFAULT 0,
+ notes VARCHAR(2000) NOT NULL DEFAULT '',
+ sort_order SMALLINT UNSIGNED NOT NULL,
+ FOREIGN KEY(assessment_id) REFERENCES hrd_monthly_assessments(id) ON DELETE CASCADE,
+ FOREIGN KEY(category_id) REFERENCES hrd_deduction_categories(id) ON DELETE SET NULL,
+ FOREIGN KEY(rule_id) REFERENCES hrd_deduction_rules(id) ON DELETE SET NULL,
+ UNIQUE KEY hrd_detail_category(assessment_id,category_id)
+);

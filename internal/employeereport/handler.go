@@ -270,6 +270,20 @@ func (h *Handler) render(c *gin.Context, page string, data gin.H) {
 	data["IsSuperadmin"] = admin
 	data["CSRFToken"] = token
 	data["SuccessMessage"] = c.Query("success")
+	canHRD := false
+	for _, group := range menus {
+		for _, item := range group.Items {
+			if item.Key == "hrd-assessments" {
+				canHRD = true
+			}
+			for _, child := range item.Children {
+				if child.Key == "hrd-assessments" {
+					canHRD = true
+				}
+			}
+		}
+	}
+	data["CanHRDReport"] = canHRD
 	data["AppName"] = h.app
 	data["Title"] = "Laporan per Karyawan"
 	data["Section"] = "Laporan"
